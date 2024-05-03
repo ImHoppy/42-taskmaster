@@ -82,19 +82,34 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		}
 
-		if (cJSON_IsString(name) && (name->valuestring != NULL) &&
-			cJSON_IsString(cmd) && (cmd->valuestring != NULL) &&
-			cJSON_IsNumber(numprocs) && (numprocs->valueint > 0))
+		if (strlen(name->valuestring) > 0)
 		{
 			processes[i].name = name->valuestring;
-			processes[i].cmd = cmd->valuestring;
-			processes[i].numprocs = numprocs->valueint;
-			i++;
 		}
 		else
 		{
+			fprintf(stderr, "Error: %s must not be empty\n", name->valuestring);
 			return FAILURE;
 		}
+		if (strlen(cmd->valuestring) > 0)
+		{
+			processes[i].cmd = cmd->valuestring;
+		}
+		else
+		{
+			fprintf(stderr, "Error: %s must not be empty\n", cmd->valuestring);
+			return FAILURE;
+		}
+		if (numprocs->valueint > 0)
+		{
+			processes[i].numprocs = numprocs->valueint;
+		}
+		else
+		{
+			fprintf(stderr, "Error: %s must not be empty\n", numprocs->valuestring);
+			return FAILURE;
+		}
+		i++;
 	}
 	return SUCCESS;
 }
