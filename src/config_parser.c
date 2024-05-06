@@ -65,6 +65,27 @@ status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 
 	return SUCCESS;
 }
+bool assign_non_empty_string(char **variable, const char *variable_name, const char *const str)
+{
+	if (str == NULL || str[0] == '\0')
+	{
+		fprintf(stderr, "Error: %s must not be empty\n", variable_name);
+		return false;
+	}
+	*variable = str;
+	return true;
+}
+
+bool assign_non_zero_int(int *variable, const char *variable_name, int value)
+{
+	if (value <= 0)
+	{
+		fprintf(stderr, "Error: %s must be greater than 0\n", variable_name);
+		return false;
+	}
+	*variable = value;
+	return true;
+}
 
 status_t parse_config(const cJSON *const processes_config, process_t *processes)
 {
@@ -83,33 +104,12 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		}
 
-		if (strlen(name->valuestring) > 0)
-		{
-			processes[i].name = name->valuestring;
-		}
-		else
-		{
-			fprintf(stderr, "Error: %s must not be empty\n", name->valuestring);
+		if (!assign_non_empty_string(&processes[i].name, name->string, name->valuestring))
 			return FAILURE;
-		}
-		if (strlen(cmd->valuestring) > 0)
-		{
-			processes[i].cmd = cmd->valuestring;
-		}
-		else
-		{
-			fprintf(stderr, "Error: %s must not be empty\n", cmd->valuestring);
+		if (!assign_non_empty_string(&processes[i].cmd, cmd->string, cmd->valuestring))
 			return FAILURE;
-		}
-		if (numprocs->valueint > 0)
-		{
-			processes[i].numprocs = numprocs->valueint;
-		}
-		else
-		{
-			fprintf(stderr, "Error: %s must not be empty\n", numprocs->valuestring);
+		if (!assign_non_zero_int(&processes[i].numprocs, numprocs->string, numprocs->valueint))
 			return FAILURE;
-		}
 		i++;
 	}
 	return SUCCESS;
