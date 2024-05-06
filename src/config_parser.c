@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type)
 {
