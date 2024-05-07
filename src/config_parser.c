@@ -19,7 +19,7 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 		fprintf(stderr, "Error: key \"%s\" not found\n", key);
 		return NULL;
 	}
-	if (value != NULL && (value->type & 0xFF) != target_type)
+	if (value != NULL && ((value->type & 0xFF) & target_type) == 0)
 	{
 		fprintf(stderr, "Error: key \"%s\" is not of type %d\n", key, target_type);
 		return NULL;
@@ -34,13 +34,21 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 
 status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 {
-	if (envs_obj == NULL || cJSON_GetArraySize(envs_obj) == 0)
+	uint32_t envs_count = cJSON_GetArraySize(envs_obj);
+	if (envs_obj == NULL || envs_count == 0)
 	{
 		processes->envs = NULL;
 		processes->envs_count = 0;
 		return SUCCESS;
 	}
-	processes->envs = malloc(sizeof(env_t) * cJSON_GetArraySize(envs_obj));
+
+	if (envs_count > UINT16_MAX)
+	{
+		fprintf(stderr, "Error: envs count must be less than %d\n", UINT16_MAX);
+		return FAILURE;
+	}
+
+	processes->envs = malloc(sizeof(env_t) * envs_count);
 	if (processes->envs == NULL)
 	{
 		fprintf(stderr, "Error: malloc failed\n");
@@ -53,7 +61,7 @@ status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 	{
 		if (!cJSON_IsString(any_env) && (any_env->valuestring == NULL))
 		{
-			fprintf(stderr, "Error: env is not a string\n");
+			fprintf(stderr, "Error: env %s is not a string\n", any_env->string);
 			return FAILURE;
 		}
 
@@ -105,8 +113,63 @@ bool assign_umask(int *umask_var, const cJSON *const umask)
 	*umask_var = strtol(umask->valuestring, NULL, 8);
 	return true;
 }
-#include <sys/types.h>
-#include <sys/stat.h>
+
+static const struct
+{
+	const char *name;
+	int value;
+} signal_list[] = {
+	{"TERM", 15},
+	{"HUP", 1},
+	{"INT", 2},
+	{"QUIT", 3},
+	{"KILL", 9},
+	{"USR1", 10},
+	{"USR2", 12},
+};
+static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
+
+bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
+{
+	if (signal == NULL)
+		return true;
+
+	if (signal->type == cJSON_Number)
+	{
+		for (int i = 0; i < signal_list_len; i++)
+		{
+			if (signal_list[i].value == signal->valueint)
+			{
+				*stopsignal = signal_list[i].value;
+				return true;
+			}
+		}
+	}
+	else if (signal->type == cJSON_String)
+	{
+		for (int i = 0; i < signal_list_len; i++)
+		{
+			if (strcmp(signal_list[i].name, signal->valuestring) == 0)
+			{
+				*stopsignal = signal_list[i].value;
+				return true;
+			}
+		}
+	}
+	else
+	{
+		fprintf(stderr, "Error: stopsignal must be a string or number\n");
+		return false;
+	}
+	fprintf(stderr, "Error: stopsignal %s unknown, must be one of", signal->valuestring);
+	for (int i = 0; i < signal_list_len; i++)
+	{
+		fprintf(stderr, " %s", signal_list[i].name);
+	}
+	fprintf(stderr, "\n");
+	return false;
+}
+
 status_t parse_config(const cJSON *const processes_config, process_t *processes)
 {
 	const cJSON *process = NULL;
@@ -118,6 +181,7 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		get_key_from_json(process, numprocs, false, cJSON_Number);
 		get_key_from_json(process, env, true, cJSON_Object);
 		get_key_from_json(process, umask, true, cJSON_String);
+		get_key_from_json(process, stopsignal, true, cJSON_String | cJSON_Number);
 
 		if (parse_envs(env, &processes[i]) == FAILURE)
 			return FAILURE;
@@ -128,6 +192,8 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		if (!assign_non_zero_int(&processes[i].numprocs, numprocs->string, numprocs->valueint))
 			return FAILURE;
 		if (!assign_umask(&processes[i].umask, umask))
+			return FAILURE;
+		if (!assign_signal(&processes[i].stopsignal, stopsignal))
 			return FAILURE;
 		i++;
 	}
@@ -144,6 +210,7 @@ void processes_default_value(process_t *processes, int processes_len)
 		processes[i].envs = NULL;
 		processes[i].envs_count = 0;
 		processes[i].umask = 0022;
+		processes[i].stopsignal = 15; // SIGTERM
 	}
 }
 
@@ -156,6 +223,14 @@ void print_config(const process_t *const processes, int processes_len)
 		printf("\tcmd: %s\n", processes[i].cmd);
 		printf("\tnumprocs: %d\n", processes[i].numprocs);
 		printf("\tumask: 0%o\n", processes[i].umask);
+		for (int j = 0; j < signal_list_len; j++)
+		{
+			if (signal_list[j].value == processes[i].stopsignal)
+			{
+				printf("\tstopsignal: %s\n", signal_list[j].name);
+				break;
+			}
+		}
 		printf("\tenvs: %d\n", processes[i].envs_count);
 		for (int j = 0; j < processes[i].envs_count; j++)
 		{

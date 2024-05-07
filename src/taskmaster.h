@@ -24,6 +24,7 @@ typedef struct
 	env_t *envs;
 	int envs_count;
 	int umask;
+	uint8_t stopsignal;
 } process_t;
 
 //

@@ -3,7 +3,8 @@
 		"name": "foo",
 		"cmd": "/bin/foo",
 		"numprocs": 1,
-		"umask": "724"
+		"umask": "724",
+		"stopsignal": 2
 	},
 	{
 		"name": "nginx",
