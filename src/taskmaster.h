@@ -32,4 +32,25 @@ typedef struct
 //
 status_t init_config(const char *const config);
 
+static const struct
+{
+	const char *name;
+	int value;
+} signal_list[] = {
+	{"TERM", 15},
+	{"HUP", 1},
+	{"INT", 2},
+	{"QUIT", 3},
+	{"KILL", 9},
+	{"USR1", 10},
+	{"USR2", 12},
+};
+static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
+
+status_t parse_envs(const cJSON *const envs_obj, process_t *processes);
+bool assign_non_empty_string(const char **variable, const char *variable_name, char *str);
+bool assign_non_zero_int(int *variable, const char *variable_name, int value);
+bool assign_umask(int *umask_var, const cJSON *const umask);
+bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
+
 #endif
