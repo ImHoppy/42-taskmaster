@@ -2,7 +2,8 @@
 	{
 		"name": "foo",
 		"cmd": "/bin/foo",
-		"numprocs": 1
+		"numprocs": 1,
+		"umask": "724"
 	},
 	{
 		"name": "nginx",

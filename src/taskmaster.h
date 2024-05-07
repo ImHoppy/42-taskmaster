@@ -23,6 +23,7 @@ typedef struct
 	int numprocs;
 	env_t *envs;
 	int envs_count;
+	int umask;
 } process_t;
 
 //
