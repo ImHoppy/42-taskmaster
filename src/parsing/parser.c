@@ -44,6 +44,7 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		get_key_from_json(process, env, true, cJSON_Object);
 		get_key_from_json(process, umask, true, cJSON_String);
 		get_key_from_json(process, stopsignal, true, cJSON_String | cJSON_Number);
+		get_key_from_json(process, exitcodes, true, cJSON_Array | cJSON_Number);
 
 		if (parse_envs(env, &processes[i]) == FAILURE)
 			return FAILURE;
@@ -56,6 +57,8 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		if (!assign_umask(&processes[i].umask, umask))
 			return FAILURE;
 		if (!assign_signal(&processes[i].stopsignal, stopsignal))
+			return FAILURE;
+		if (!assign_exitcodes(processes[i].exitcodes, exitcodes))
 			return FAILURE;
 		i++;
 	}
@@ -73,6 +76,7 @@ void processes_default_value(process_t *processes, int processes_len)
 		processes[i].envs_count = 0;
 		processes[i].umask = 0022;
 		processes[i].stopsignal = 15; // SIGTERM
+		processes[i].exitcodes[0] = true;
 	}
 }
 
@@ -98,6 +102,15 @@ void print_config(const process_t *const processes, int processes_len)
 		{
 			printf("\t[%d]: %s=%s\n", j, processes[i].envs[j].key, processes[i].envs[j].value);
 		}
+		printf("\texitcodes: [ ");
+		for (int j = 0; j < 256; j++)
+		{
+			if (processes[i].exitcodes[j])
+			{
+				printf("%d ", j);
+			}
+		}
+		printf("]\n");
 		printf("}\n");
 	}
 }
@@ -142,7 +155,7 @@ status_t init_config(const char *const config)
 		return FAILURE;
 	}
 
-	process_t *processes = malloc(sizeof(process_t) * processes_len);
+	process_t *processes = calloc(sizeof(process_t), processes_len);
 	if (processes == NULL)
 	{
 		cJSON_Delete(processes_config);

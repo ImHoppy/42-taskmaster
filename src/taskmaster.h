@@ -25,6 +25,7 @@ typedef struct
 	int envs_count;
 	int umask;
 	uint8_t stopsignal;
+	bool exitcodes[256];
 } process_t;
 
 //
@@ -48,6 +49,7 @@ static const struct
 static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
 
 status_t parse_envs(const cJSON *const envs_obj, process_t *processes);
+bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);
 bool assign_non_empty_string(const char **variable, const char *variable_name, char *str);
 bool assign_non_zero_int(int *variable, const char *variable_name, int value);
 bool assign_umask(int *umask_var, const cJSON *const umask);
