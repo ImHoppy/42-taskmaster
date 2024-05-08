@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type)
+const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type, const char *const type_msg)
 {
 	if (object == NULL)
 		return NULL;
@@ -21,15 +21,15 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 	}
 	if (value != NULL && ((value->type & 0xFF) & target_type) == 0)
 	{
-		fprintf(stderr, "Error: key \"%s\" is not of type %d\n", key, target_type);
+		fprintf(stderr, "Error: key \"%s\" is not of type %s\n", key, type_msg);
 		return NULL;
 	}
 	return value;
 }
 
-#define get_key_from_json(object, key, optional, target_type)          \
-	const cJSON *key = get_value(object, #key, optional, target_type); \
-	if (!optional && key == NULL)                                      \
+#define get_key_from_json(object, key, optional, target_type)                        \
+	const cJSON *key = get_value(object, #key, optional, target_type, #target_type); \
+	if (!optional && key == NULL)                                                    \
 		return FAILURE;
 
 status_t parse_config(const cJSON *const processes_config, process_t *processes)
