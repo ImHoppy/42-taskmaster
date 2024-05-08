@@ -61,7 +61,7 @@ static bool assign_exitcode(bool exitcodes[256], int exitcode)
 
 bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 {
-	if (exitcodes_obj == NULL)
+	if (exitcodes_obj == NULL || exitcodes == NULL)
 		return true;
 
 	exitcodes[0] = false;
@@ -97,7 +97,7 @@ bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 
 bool assign_non_empty_string(const char **variable, const cJSON *const value)
 {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	if (value->valuestring == NULL || value->valuestring[0] == '\0')
 	{
@@ -110,7 +110,7 @@ bool assign_non_empty_string(const char **variable, const cJSON *const value)
 
 bool assign_string(const char **variable, const cJSON *const value)
 {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	*variable = value->valuestring;
 	return true;
@@ -118,7 +118,7 @@ bool assign_string(const char **variable, const cJSON *const value)
 
 bool assign_bool(bool *variable, const cJSON *const value)
 {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	*variable = (value->type & 0xFF) == cJSON_True;
 	return true;
@@ -126,7 +126,7 @@ bool assign_bool(bool *variable, const cJSON *const value)
 
 bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value)
 {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	if (value->valueint <= 0 || value->valueint > INT32_MAX)
 	{
@@ -139,7 +139,7 @@ bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value)
 
 bool assign_umask(int *umask_var, const cJSON *const umask)
 {
-	if (umask == NULL)
+	if (umask == NULL || umask_var == NULL)
 		return true;
 	if (strlen(umask->valuestring) != 3)
 		return false;
@@ -158,7 +158,7 @@ bool assign_umask(int *umask_var, const cJSON *const umask)
 
 bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 {
-	if (signal == NULL)
+	if (signal == NULL || stopsignal == NULL)
 		return true;
 
 	if ((signal->type & 0xFF) == cJSON_Number)
@@ -198,7 +198,7 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 }
 
 bool assign_non_negative(uint32_t *variable, const cJSON *const value) {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	if (value->valueint < 0 || value->valueint > INT32_MAX)
 		return false;
@@ -209,7 +209,7 @@ bool assign_non_negative(uint32_t *variable, const cJSON *const value) {
 
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value)
 {
-	if (value == NULL)
+	if (value == NULL || variable == NULL)
 		return true;
 	if ((value->type & 0xFF) == cJSON_True)
 		*variable = ALWAYS;
