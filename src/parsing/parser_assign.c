@@ -94,7 +94,7 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 	if (signal == NULL)
 		return true;
 
-	if (signal->type == cJSON_Number)
+	if ((signal->type & 0xFF) == cJSON_Number)
 	{
 		for (int i = 0; i < signal_list_len; i++)
 		{
@@ -105,7 +105,7 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 			}
 		}
 	}
-	else if (signal->type == cJSON_String)
+	else if ((signal->type & 0xFF) == cJSON_String)
 	{
 		for (int i = 0; i < signal_list_len; i++)
 		{
