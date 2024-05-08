@@ -7,27 +7,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
+bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 {
 	uint32_t envs_count = cJSON_GetArraySize(envs_obj);
 	if (envs_obj == NULL || envs_count == 0)
 	{
 		processes->envs = NULL;
 		processes->envs_count = 0;
-		return SUCCESS;
+		return true;
 	}
 
 	if (envs_count > UINT16_MAX)
 	{
 		fprintf(stderr, "Error: envs count must be less than %d\n", UINT16_MAX);
-		return FAILURE;
+		return false;
 	}
 
 	processes->envs = malloc(sizeof(env_t) * envs_count);
 	if (processes->envs == NULL)
 	{
 		fprintf(stderr, "Error: malloc failed\n");
-		return FAILURE;
+		return false;
 	}
 
 	const cJSON *any_env = NULL;
@@ -37,7 +37,7 @@ status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 		if (!cJSON_IsString(any_env) && any_env->valuestring == NULL)
 		{
 			fprintf(stderr, "Error: env %s is not a string\n", any_env->string);
-			return FAILURE;
+			return false;
 		}
 
 		processes->envs[env_index].key = any_env->string;
@@ -46,7 +46,7 @@ status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 	}
 	processes->envs_count = env_index;
 
-	return SUCCESS;
+	return true;
 }
 static bool assign_exitcode(bool exitcodes[256], int exitcode)
 {
@@ -95,14 +95,32 @@ bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 	return true;
 }
 
-bool assign_non_empty_string(const char **variable, const char *variable_name, char *str)
+bool assign_non_empty_string(const char **variable, const cJSON *const value)
 {
-	if (str == NULL || str[0] == '\0')
+	if (value == NULL)
+		return true;
+	if (value->valuestring == NULL || value->valuestring[0] == '\0')
 	{
-		fprintf(stderr, "Error: %s must not be empty\n", variable_name);
+		fprintf(stderr, "Error: %s must not be empty\n", value->string);
 		return false;
 	}
-	*variable = str;
+	*variable = value->valuestring;
+	return true;
+}
+
+bool assign_string(const char **variable, const cJSON *const value)
+{
+	if (value == NULL)
+		return true;
+	*variable = value->valuestring;
+	return true;
+}
+
+bool assign_bool(bool *variable, const cJSON *const value)
+{
+	if (value == NULL)
+		return true;
+	*variable = (value->type & 0xFF) == cJSON_True;
 	return true;
 }
 
@@ -186,5 +204,23 @@ bool assign_non_negative(uint32_t *variable, const cJSON *const value) {
 		return false;
 
 	*variable = value->valueint;
+	return true;
+}
+
+bool assign_autorestart(autorestart_t *variable, const cJSON *const value)
+{
+	if (value == NULL)
+		return true;
+	if ((value->type & 0xFF) == cJSON_True)
+		*variable = ALWAYS;
+	else if ((value->type & 0xFF) == cJSON_False)
+		*variable = NEVER;
+	else if ((value->type & 0xFF) == cJSON_String && strcmp(value->valuestring, "unexpected") == 0)
+		*variable = UNEXPECTED;
+	else
+	{
+		fprintf(stderr, "Error: autorestart must be a boolean or \"unexpected\"\n");
+		return false;
+	}
 	return true;
 }

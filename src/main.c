@@ -24,14 +24,14 @@ int main(int ac, char **av)
 	size_file = ftell(config);
 	fseek(config, 0, SEEK_SET);
 
-	unsigned char *config_str = calloc(sizeof(char), size_file + 1);
+	char *config_str = calloc(sizeof(char), size_file + 1);
 	if (config_str == NULL)
 	{
 		fprintf(stderr, "Error: malloc failed\n");
 		fclose(config);
 		return 1;
 	}
-	fread(config_str, sizeof(unsigned char), size_file, config);
+	fread(config_str, sizeof(char), size_file, config);
 	init_config(config_str);
 
 	free(config_str);

@@ -44,15 +44,21 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		get_key_from_json(process, env, true, cJSON_Object);
 		get_key_from_json(process, umask, true, cJSON_String);
 		get_key_from_json(process, stopsignal, true, cJSON_String | cJSON_Number);
+		get_key_from_json(process, stoptime, true, cJSON_Number);
 		get_key_from_json(process, startretries, true, cJSON_Number);
 		get_key_from_json(process, starttime, true, cJSON_Number);
+		get_key_from_json(process, autostart, true, cJSON_True | cJSON_False);
+		get_key_from_json(process, autorestart, true, cJSON_True | cJSON_False | cJSON_String);
 		get_key_from_json(process, exitcodes, true, cJSON_Array | cJSON_Number);
+		get_key_from_json(process, stdout_logfile, true, cJSON_String);
+		get_key_from_json(process, stderr_logfile, true, cJSON_String);
+		get_key_from_json(process, workingdir, true, cJSON_String);
 
-		if (parse_envs(env, &processes[i]) == FAILURE)
+		if (!parse_envs(env, &processes[i]))
 			return FAILURE;
-		if (!assign_non_empty_string(&processes[i].name, name->string, name->valuestring))
+		if (!assign_non_empty_string(&processes[i].name, name))
 			return FAILURE;
-		if (!assign_non_empty_string(&processes[i].cmd, cmd->string, cmd->valuestring))
+		if (!assign_non_empty_string(&processes[i].cmd, cmd))
 			return FAILURE;
 		if (!assign_non_zero_uint32(&processes[i].numprocs, numprocs))
 			return FAILURE;
@@ -60,11 +66,23 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		if (!assign_signal(&processes[i].stopsignal, stopsignal))
 			return FAILURE;
+		if (!assign_non_zero_uint32(&processes[i].stoptime, stoptime))
+			return FAILURE;
 		if (!assign_non_zero_uint32(&processes[i].startretries, startretries))
 			return FAILURE;
 		if (!assign_non_negative(&processes[i].starttime, starttime))
 			return FAILURE;
+		if (!assign_bool(&processes[i].autostart, autostart))
+			return FAILURE;
+		if (!assign_autorestart(&processes[i].autorestart, autorestart))
+			return FAILURE;
 		if (!assign_exitcodes(processes[i].exitcodes, exitcodes))
+			return FAILURE;
+		if (!assign_string(&processes[i].stdout_logfile, stdout_logfile))
+			return FAILURE;
+		if (!assign_string(&processes[i].stderr_logfile, stderr_logfile))
+			return FAILURE;
+		if (!assign_string(&processes[i].workingdir, workingdir))
 			return FAILURE;
 		i++;
 	}
@@ -75,6 +93,8 @@ void processes_default_value(process_t *processes, int processes_len)
 {
 	for (int i = 0; i < processes_len; i++)
 	{
+		processes[i].state = STOPPED;
+
 		processes[i].name = NULL;
 		processes[i].cmd = NULL;
 		processes[i].numprocs = 1;
@@ -82,9 +102,15 @@ void processes_default_value(process_t *processes, int processes_len)
 		processes[i].envs_count = 0;
 		processes[i].umask = 0022;
 		processes[i].stopsignal = 15; // SIGTERM
+		processes[i].stoptime = 10;
 		processes[i].startretries = 3;
 		processes[i].starttime = 1;
+		processes[i].autostart = true;
 		processes[i].exitcodes[0] = true;
+		processes[i].autorestart = UNEXPECTED;
+		processes[i].stdout_logfile = NULL;
+		processes[i].stderr_logfile = NULL;
+		processes[i].workingdir = NULL;
 	}
 }
 
@@ -121,6 +147,12 @@ void print_config(const process_t *const processes, int processes_len)
 		printf("]\n");
 		printf("\tstartretries: %d\n", processes[i].startretries);
 		printf("\tstarttime: %d\n", processes[i].starttime);
+		printf("\tstoptime: %d\n", processes[i].stoptime);
+		printf("\tautostart: %s\n", processes[i].autostart ? "true" : "false");
+		printf("\tautorestart: %d\n", processes[i].autorestart);
+		printf("\tstdout_logfile: %s\n", processes[i].stdout_logfile);
+		printf("\tstderr_logfile: %s\n", processes[i].stderr_logfile);
+		printf("\tworkingdir: %s\n", processes[i].workingdir);
 		printf("}\n");
 	}
 }
