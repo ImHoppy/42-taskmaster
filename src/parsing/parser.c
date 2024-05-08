@@ -119,6 +119,8 @@ void print_config(const process_t *const processes, int processes_len)
 			}
 		}
 		printf("]\n");
+		printf("\tstartretries: %d\n", processes[i].startretries);
+		printf("\tstarttime: %d\n", processes[i].starttime);
 		printf("}\n");
 	}
 }
