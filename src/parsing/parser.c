@@ -44,6 +44,8 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		get_key_from_json(process, env, true, cJSON_Object);
 		get_key_from_json(process, umask, true, cJSON_String);
 		get_key_from_json(process, stopsignal, true, cJSON_String | cJSON_Number);
+		get_key_from_json(process, startretries, true, cJSON_Number);
+		get_key_from_json(process, starttime, true, cJSON_Number);
 
 		if (parse_envs(env, &processes[i]) == FAILURE)
 			return FAILURE;
@@ -51,11 +53,15 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		if (!assign_non_empty_string(&processes[i].cmd, cmd->string, cmd->valuestring))
 			return FAILURE;
-		if (!assign_non_zero_int(&processes[i].numprocs, numprocs->string, numprocs->valueint))
+		if (!assign_non_zero_uint32(&processes[i].numprocs, numprocs))
 			return FAILURE;
 		if (!assign_umask(&processes[i].umask, umask))
 			return FAILURE;
 		if (!assign_signal(&processes[i].stopsignal, stopsignal))
+			return FAILURE;
+		if (!assign_non_zero_uint32(&processes[i].startretries, startretries))
+			return FAILURE;
+		if(!assign_non_negative(&processes[i].starttime, starttime))
 			return FAILURE;
 		i++;
 	}
@@ -73,6 +79,8 @@ void processes_default_value(process_t *processes, int processes_len)
 		processes[i].envs_count = 0;
 		processes[i].umask = 0022;
 		processes[i].stopsignal = 15; // SIGTERM
+		processes[i].startretries = 3;
+		processes[i].starttime = 1;
 	}
 }
 

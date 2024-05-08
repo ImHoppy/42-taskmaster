@@ -59,14 +59,16 @@ bool assign_non_empty_string(const char **variable, const char *variable_name, c
 	return true;
 }
 
-bool assign_non_zero_int(int *variable, const char *variable_name, int value)
-{
-	if (value <= 0)
+bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value)
+{	
+	if (value == NULL)
+		return true;
+	if (value->valueint <= 0 || value->valueint > INT32_MAX)
 	{
-		fprintf(stderr, "Error: %s must be greater than 0\n", variable_name);
+		fprintf(stderr, "Error: %s must be greater than 0\n", value->string);
 		return false;
 	}
-	*variable = value;
+	*variable = value->valueint;
 	return true;
 }
 
@@ -128,4 +130,14 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 	}
 	fprintf(stderr, "\n");
 	return false;
+}
+
+bool assign_non_negative(uint32_t *variable, const cJSON *const value) {
+	if (value == NULL)
+		return true;
+	if (value->valueint < 0 || value->valueint > INT32_MAX)
+		return false;
+
+	*variable = value->valueint;
+	return true;
 }
