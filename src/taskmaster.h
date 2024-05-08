@@ -27,6 +27,7 @@ typedef struct
 	uint8_t stopsignal;
 	uint32_t startretries;
 	uint32_t starttime;
+	bool exitcodes[256];
 } process_t;
 
 //
@@ -50,6 +51,7 @@ static const struct
 static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
 
 status_t parse_envs(const cJSON *const envs_obj, process_t *processes);
+bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);
 bool assign_non_empty_string(const char **variable, const char *variable_name, char *str);
 bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value);
 bool assign_umask(int *umask_var, const cJSON *const umask);

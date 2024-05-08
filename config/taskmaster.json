@@ -4,7 +4,8 @@
 		"cmd": "/bin/foo",
 		"numprocs": 1,
 		"umask": "724",
-		"stopsignal": 2
+		"stopsignal": 2,
+		"exitcodes": 255
 	},
 	{
 		"name": "nginx",

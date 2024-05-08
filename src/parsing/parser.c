@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type)
+const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type, const char *const type_msg)
 {
 	if (object == NULL)
 		return NULL;
@@ -21,15 +21,15 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 	}
 	if (value != NULL && ((value->type & 0xFF) & target_type) == 0)
 	{
-		fprintf(stderr, "Error: key \"%s\" is not of type %d\n", key, target_type);
+		fprintf(stderr, "Error: key \"%s\" is not of type %s\n", key, type_msg);
 		return NULL;
 	}
 	return value;
 }
 
-#define get_key_from_json(object, key, optional, target_type)          \
-	const cJSON *key = get_value(object, #key, optional, target_type); \
-	if (!optional && key == NULL)                                      \
+#define get_key_from_json(object, key, optional, target_type)                        \
+	const cJSON *key = get_value(object, #key, optional, target_type, #target_type); \
+	if (!optional && key == NULL)                                                    \
 		return FAILURE;
 
 status_t parse_config(const cJSON *const processes_config, process_t *processes)
@@ -46,6 +46,7 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		get_key_from_json(process, stopsignal, true, cJSON_String | cJSON_Number);
 		get_key_from_json(process, startretries, true, cJSON_Number);
 		get_key_from_json(process, starttime, true, cJSON_Number);
+		get_key_from_json(process, exitcodes, true, cJSON_Array | cJSON_Number);
 
 		if (parse_envs(env, &processes[i]) == FAILURE)
 			return FAILURE;
@@ -62,6 +63,8 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 		if (!assign_non_zero_uint32(&processes[i].startretries, startretries))
 			return FAILURE;
 		if(!assign_non_negative(&processes[i].starttime, starttime))
+			return FAILURE;
+		if (!assign_exitcodes(processes[i].exitcodes, exitcodes))
 			return FAILURE;
 		i++;
 	}
@@ -81,6 +84,7 @@ void processes_default_value(process_t *processes, int processes_len)
 		processes[i].stopsignal = 15; // SIGTERM
 		processes[i].startretries = 3;
 		processes[i].starttime = 1;
+		processes[i].exitcodes[0] = true;
 	}
 }
 
@@ -106,6 +110,15 @@ void print_config(const process_t *const processes, int processes_len)
 		{
 			printf("\t[%d]: %s=%s\n", j, processes[i].envs[j].key, processes[i].envs[j].value);
 		}
+		printf("\texitcodes: [ ");
+		for (int j = 0; j < 256; j++)
+		{
+			if (processes[i].exitcodes[j])
+			{
+				printf("%d ", j);
+			}
+		}
+		printf("]\n");
 		printf("}\n");
 	}
 }
@@ -150,7 +163,7 @@ status_t init_config(const char *const config)
 		return FAILURE;
 	}
 
-	process_t *processes = malloc(sizeof(process_t) * processes_len);
+	process_t *processes = calloc(sizeof(process_t), processes_len);
 	if (processes == NULL)
 	{
 		cJSON_Delete(processes_config);

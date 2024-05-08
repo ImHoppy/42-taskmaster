@@ -48,6 +48,53 @@ status_t parse_envs(const cJSON *const envs_obj, process_t *processes)
 
 	return SUCCESS;
 }
+static bool assign_exitcode(bool exitcodes[256], int exitcode)
+{
+	if (exitcode < 0 || exitcode > 255)
+	{
+		fprintf(stderr, "Error: exitcode must be between 0 and 255\n");
+		return false;
+	}
+	exitcodes[exitcode] = true;
+	return true;
+}
+
+bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
+{
+	if (exitcodes_obj == NULL)
+		return true;
+
+	exitcodes[0] = false;
+	if ((exitcodes_obj->type & 0xFF) == cJSON_Array)
+	{
+		if (cJSON_GetArraySize(exitcodes_obj) == 0)
+		{
+			fprintf(stderr, "Error: exitcodes must not be empty\n");
+			return false;
+		}
+		const cJSON *exitcode = NULL;
+		cJSON_ArrayForEach(exitcode, exitcodes_obj)
+		{
+			if ((exitcode->type & 0xFF) != cJSON_Number)
+			{
+				fprintf(stderr, "Error: exitcode must be a number\n");
+				return false;
+			}
+			if (!assign_exitcode(exitcodes, exitcode->valueint))
+				return false;
+		}
+	}
+	else if ((exitcodes_obj->type & 0xFF) == cJSON_Number)
+		assign_exitcode(exitcodes, exitcodes_obj->valueint);
+	else
+	{
+		fprintf(stderr, "Error: exitcodes must be an array or a number\n");
+		return false;
+	}
+
+	return true;
+}
+
 bool assign_non_empty_string(const char **variable, const char *variable_name, char *str)
 {
 	if (str == NULL || str[0] == '\0')
