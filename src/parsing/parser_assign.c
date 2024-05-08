@@ -12,8 +12,8 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 	uint32_t envs_count = cJSON_GetArraySize(envs_obj);
 	if (envs_obj == NULL || envs_count == 0)
 	{
-		processes->envs = NULL;
-		processes->envs_count = 0;
+		processes->config.envs = NULL;
+		processes->config.envs_count = 0;
 		return true;
 	}
 
@@ -23,8 +23,8 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 		return false;
 	}
 
-	processes->envs = malloc(sizeof(env_t) * envs_count);
-	if (processes->envs == NULL)
+	processes->config.envs = malloc(sizeof(env_t) * envs_count);
+	if (processes->config.envs == NULL)
 	{
 		fprintf(stderr, "Error: malloc failed\n");
 		return false;
@@ -40,11 +40,11 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 			return false;
 		}
 
-		processes->envs[env_index].key = any_env->string;
-		processes->envs[env_index].value = any_env->valuestring;
+		processes->config.envs[env_index].key = any_env->string;
+		processes->config.envs[env_index].value = any_env->valuestring;
 		env_index++;
 	}
-	processes->envs_count = env_index;
+	processes->config.envs_count = env_index;
 
 	return true;
 }

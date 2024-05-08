@@ -56,33 +56,33 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 
 		if (!parse_envs(env, &processes[i]))
 			return FAILURE;
-		if (!assign_non_empty_string(&processes[i].name, name))
+		if (!assign_non_empty_string(&processes[i].config.name, name))
 			return FAILURE;
-		if (!assign_non_empty_string(&processes[i].cmd, cmd))
+		if (!assign_non_empty_string(&processes[i].config.cmd, cmd))
 			return FAILURE;
-		if (!assign_non_zero_uint32(&processes[i].numprocs, numprocs))
+		if (!assign_non_zero_uint32(&processes[i].config.numprocs, numprocs))
 			return FAILURE;
-		if (!assign_umask(&processes[i].umask, umask))
+		if (!assign_umask(&processes[i].config.umask, umask))
 			return FAILURE;
-		if (!assign_signal(&processes[i].stopsignal, stopsignal))
+		if (!assign_signal(&processes[i].config.stopsignal, stopsignal))
 			return FAILURE;
-		if (!assign_non_zero_uint32(&processes[i].stoptime, stoptime))
+		if (!assign_non_zero_uint32(&processes[i].config.stoptime, stoptime))
 			return FAILURE;
-		if (!assign_non_zero_uint32(&processes[i].startretries, startretries))
+		if (!assign_non_zero_uint32(&processes[i].config.startretries, startretries))
 			return FAILURE;
-		if (!assign_non_negative(&processes[i].starttime, starttime))
+		if (!assign_non_negative(&processes[i].config.starttime, starttime))
 			return FAILURE;
-		if (!assign_bool(&processes[i].autostart, autostart))
+		if (!assign_bool(&processes[i].config.autostart, autostart))
 			return FAILURE;
-		if (!assign_autorestart(&processes[i].autorestart, autorestart))
+		if (!assign_autorestart(&processes[i].config.autorestart, autorestart))
 			return FAILURE;
-		if (!assign_exitcodes(processes[i].exitcodes, exitcodes))
+		if (!assign_exitcodes(processes[i].config.exitcodes, exitcodes))
 			return FAILURE;
-		if (!assign_string(&processes[i].stdout_logfile, stdout_logfile))
+		if (!assign_string(&processes[i].config.stdout_logfile, stdout_logfile))
 			return FAILURE;
-		if (!assign_string(&processes[i].stderr_logfile, stderr_logfile))
+		if (!assign_string(&processes[i].config.stderr_logfile, stderr_logfile))
 			return FAILURE;
-		if (!assign_string(&processes[i].workingdir, workingdir))
+		if (!assign_string(&processes[i].config.workingdir, workingdir))
 			return FAILURE;
 		i++;
 	}
@@ -95,22 +95,22 @@ void processes_default_value(process_t *processes, int processes_len)
 	{
 		processes[i].state = STOPPED;
 
-		processes[i].name = NULL;
-		processes[i].cmd = NULL;
-		processes[i].numprocs = 1;
-		processes[i].envs = NULL;
-		processes[i].envs_count = 0;
-		processes[i].umask = 0022;
-		processes[i].stopsignal = 15; // SIGTERM
-		processes[i].stoptime = 10;
-		processes[i].startretries = 3;
-		processes[i].starttime = 1;
-		processes[i].autostart = true;
-		processes[i].exitcodes[0] = true;
-		processes[i].autorestart = UNEXPECTED;
-		processes[i].stdout_logfile = NULL;
-		processes[i].stderr_logfile = NULL;
-		processes[i].workingdir = NULL;
+		processes[i].config.name = NULL;
+		processes[i].config.cmd = NULL;
+		processes[i].config.numprocs = 1;
+		processes[i].config.envs = NULL;
+		processes[i].config.envs_count = 0;
+		processes[i].config.umask = 0022;
+		processes[i].config.stopsignal = 15; // SIGTERM
+		processes[i].config.stoptime = 10;
+		processes[i].config.startretries = 3;
+		processes[i].config.starttime = 1;
+		processes[i].config.autostart = true;
+		processes[i].config.exitcodes[0] = true;
+		processes[i].config.autorestart = UNEXPECTED;
+		processes[i].config.stdout_logfile = NULL;
+		processes[i].config.stderr_logfile = NULL;
+		processes[i].config.workingdir = NULL;
 	}
 }
 
@@ -119,40 +119,40 @@ void print_config(const process_t *const processes, int processes_len)
 	for (int i = 0; i < processes_len; i++)
 	{
 		printf("%d = {\n", i);
-		printf("\tname: %s\n", processes[i].name);
-		printf("\tcmd: %s\n", processes[i].cmd);
-		printf("\tnumprocs: %d\n", processes[i].numprocs);
-		printf("\tumask: 0%o\n", processes[i].umask);
+		printf("\tname: %s\n", processes[i].config.name);
+		printf("\tcmd: %s\n", processes[i].config.cmd);
+		printf("\tnumprocs: %d\n", processes[i].config.numprocs);
+		printf("\tumask: 0%o\n", processes[i].config.umask);
 		for (int j = 0; j < signal_list_len; j++)
 		{
-			if (signal_list[j].value == processes[i].stopsignal)
+			if (signal_list[j].value == processes[i].config.stopsignal)
 			{
 				printf("\tstopsignal: %s\n", signal_list[j].name);
 				break;
 			}
 		}
-		printf("\tenvs: %d\n", processes[i].envs_count);
-		for (int j = 0; j < processes[i].envs_count; j++)
+		printf("\tenvs: %d\n", processes[i].config.envs_count);
+		for (int j = 0; j < processes[i].config.envs_count; j++)
 		{
-			printf("\t[%d]: %s=%s\n", j, processes[i].envs[j].key, processes[i].envs[j].value);
+			printf("\t[%d]: %s=%s\n", j, processes[i].config.envs[j].key, processes[i].config.envs[j].value);
 		}
 		printf("\texitcodes: [ ");
 		for (int j = 0; j < 256; j++)
 		{
-			if (processes[i].exitcodes[j])
+			if (processes[i].config.exitcodes[j])
 			{
 				printf("%d ", j);
 			}
 		}
 		printf("]\n");
-		printf("\tstartretries: %d\n", processes[i].startretries);
-		printf("\tstarttime: %d\n", processes[i].starttime);
-		printf("\tstoptime: %d\n", processes[i].stoptime);
-		printf("\tautostart: %s\n", processes[i].autostart ? "true" : "false");
-		printf("\tautorestart: %d\n", processes[i].autorestart);
-		printf("\tstdout_logfile: %s\n", processes[i].stdout_logfile);
-		printf("\tstderr_logfile: %s\n", processes[i].stderr_logfile);
-		printf("\tworkingdir: %s\n", processes[i].workingdir);
+		printf("\tstartretries: %d\n", processes[i].config.startretries);
+		printf("\tstarttime: %d\n", processes[i].config.starttime);
+		printf("\tstoptime: %d\n", processes[i].config.stoptime);
+		printf("\tautostart: %s\n", processes[i].config.autostart ? "true" : "false");
+		printf("\tautorestart: %d\n", processes[i].config.autorestart);
+		printf("\tstdout_logfile: %s\n", processes[i].config.stdout_logfile);
+		printf("\tstderr_logfile: %s\n", processes[i].config.stderr_logfile);
+		printf("\tworkingdir: %s\n", processes[i].config.workingdir);
 		printf("}\n");
 	}
 }
@@ -165,10 +165,10 @@ void free_processes(process_t *const processes, int processes_len)
 	}
 	for (int i = 0; i < processes_len; i++)
 	{
-		if (processes[i].envs != NULL)
+		if (processes[i].config.envs != NULL)
 		{
-			free(processes[i].envs);
-			processes[i].envs = NULL;
+			free(processes[i].config.envs);
+			processes[i].config.envs = NULL;
 		}
 	}
 	free(processes);

@@ -37,8 +37,6 @@ typedef enum autorestart_t
 
 typedef struct
 {
-	process_state_t state;
-
 	const char *name;
 	const char *cmd;
 	uint32_t numprocs;
@@ -58,6 +56,12 @@ typedef struct
 	const char *stdout_logfile;
 	const char *stderr_logfile;
 	const char *workingdir;
+} process_config_t;
+typedef struct
+{
+	process_state_t state;
+
+	process_config_t config;
 } process_t;
 
 //
