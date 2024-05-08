@@ -133,7 +133,15 @@ status_t init_config(const char *const config)
 		cJSON_Delete(processes_config);
 		return FAILURE;
 	}
+
 	int processes_len = cJSON_GetArraySize(processes_config);
+	if (processes_len <= 0 || (processes_config->type & 0xFF) != cJSON_Array)
+	{
+		fprintf(stderr, "Error: config must be an array of objects\n");
+		cJSON_Delete(processes_config);
+		return FAILURE;
+	}
+
 	process_t *processes = malloc(sizeof(process_t) * processes_len);
 	if (processes == NULL)
 	{
@@ -145,11 +153,11 @@ status_t init_config(const char *const config)
 	if (parse_config(processes_config, processes) == FAILURE)
 	{
 		cJSON_Delete(processes_config);
-		free(processes);
+		free_processes(processes, processes_len);
 		return FAILURE;
 	}
 	print_config(processes, processes_len);
 	cJSON_Delete(processes_config);
 	free_processes(processes, processes_len);
-	return FAILURE;
+	return SUCCESS;
 }
