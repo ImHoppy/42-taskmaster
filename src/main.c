@@ -18,16 +18,23 @@ int main(int ac, char **av)
 		fprintf(stderr, "Error opening config file\n");
 		return 1;
 	}
-	char config_str[1024] = {0};
 
 	int size_file = 0;
 	fseek(config, 0, SEEK_END);
 	size_file = ftell(config);
 	fseek(config, 0, SEEK_SET);
 
-	fread(config_str, 1, size_file, config);
+	unsigned char *config_str = calloc(sizeof(char), size_file + 1);
+	if (config_str == NULL)
+	{
+		fprintf(stderr, "Error: malloc failed\n");
+		fclose(config);
+		return 1;
+	}
+	fread(config_str, sizeof(unsigned char), size_file, config);
 	init_config(config_str);
 
+	free(config_str);
 	fclose(config);
 	return 0;
 }

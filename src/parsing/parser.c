@@ -62,7 +62,7 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		if (!assign_non_zero_uint32(&processes[i].startretries, startretries))
 			return FAILURE;
-		if(!assign_non_negative(&processes[i].starttime, starttime))
+		if (!assign_non_negative(&processes[i].starttime, starttime))
 			return FAILURE;
 		if (!assign_exitcodes(processes[i].exitcodes, exitcodes))
 			return FAILURE;

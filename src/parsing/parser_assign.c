@@ -107,7 +107,7 @@ bool assign_non_empty_string(const char **variable, const char *variable_name, c
 }
 
 bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value)
-{	
+{
 	if (value == NULL)
 		return true;
 	if (value->valueint <= 0 || value->valueint > INT32_MAX)
