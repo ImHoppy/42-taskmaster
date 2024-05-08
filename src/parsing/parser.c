@@ -102,6 +102,23 @@ void print_config(const process_t *const processes, int processes_len)
 	}
 }
 
+void free_processes(process_t *const processes, int processes_len)
+{
+	if (processes == NULL || processes_len <= 0)
+	{
+		return;
+	}
+	for (int i = 0; i < processes_len; i++)
+	{
+		if (processes[i].envs != NULL)
+		{
+			free(processes[i].envs);
+			processes[i].envs = NULL;
+		}
+	}
+	free(processes);
+}
+
 status_t init_config(const char *const config)
 {
 	cJSON *processes_config = cJSON_Parse(config);
@@ -133,6 +150,6 @@ status_t init_config(const char *const config)
 	}
 	print_config(processes, processes_len);
 	cJSON_Delete(processes_config);
-	free(processes);
+	free_processes(processes, processes_len);
 	return FAILURE;
 }
