@@ -35,6 +35,8 @@ int main(int ac, char **av)
 	taskmaster_t taskmaster;
 	init_config(config_str, &taskmaster);
 
+	routine(&taskmaster);
+
 	cJSON_Delete(taskmaster.processes_config);
 	free_processes(taskmaster.processes, cJSON_GetArraySize(taskmaster.processes_config));
 	free(config_str);

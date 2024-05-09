@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 #include "cJSON.h"
 
 typedef enum
@@ -63,6 +66,7 @@ typedef struct
 {
 	process_state_t state;
 	process_config_t config;
+	clock_t starting_time;
 } process_t;
 
 typedef struct {
@@ -103,6 +107,8 @@ bool assign_umask(int *umask_var, const cJSON *const umask);
 bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
 bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
+
+status_t routine(taskmaster_t *taskmaster);
 
 void free_processes(process_t *const processes, int processes_len);
 
