@@ -17,15 +17,9 @@ set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")
 
-# Custom target to clean build artifacts
-add_custom_target(fclean
-    COMMAND ${CMAKE_COMMAND} -E remove -f taskmaster
-    COMMENT "Cleaning build artifacts"
-)
-
 # Custom target to recompile
 add_custom_target(re
-    DEPENDS fclean
-	DEPENDS taskmaster
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target taskmaster
     COMMENT "Rebuilding"
 )
