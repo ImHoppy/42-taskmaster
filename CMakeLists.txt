@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(taskmaster)
 
 set(CMAKE_CXX_STANDARD 14)
+# set(CMAKE_VERBOSE_MAKEFILE on)
 
 # Shared source files
 file(GLOB_RECURSE SOURCES_SHARED "src/shared/*.c")
@@ -16,13 +17,15 @@ file(GLOB_RECURSE SOURCES_CLIENT "src/client/*.c")
 add_executable(taskmasterctl ${SOURCES_CLIENT} ${SOURCES_SHARED})
 target_include_directories(taskmasterctl PRIVATE src/client)
 target_include_directories(taskmasterctl PRIVATE src/shared)
+# Link readline library
+target_link_libraries(taskmasterctl readline)
 
 #
 # Server Executable
 #
 # Add source files from the src directory
 file(GLOB_RECURSE SOURCES_SERVER "src/server/*.c")
-# Add cjson.c to your sources
+# Add cjson.c to server sources
 list(APPEND SOURCES_SERVER "cjson/cJSON.c")
 
 add_executable(taskmasterd ${SOURCES_SERVER} ${SOURCES_SHARED})
