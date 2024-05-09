@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "cJSON.h"
 
 typedef enum
 {
@@ -57,23 +58,26 @@ typedef struct
 	const char *stderr_logfile;
 	const char *workingdir;
 } process_config_t;
+
 typedef struct
 {
 	process_state_t state;
-
 	process_config_t config;
 } process_t;
 
-//
-// Parsing
-//
-status_t init_config(const char *const config);
+typedef struct {
+	cJSON *processes_config;
+	process_t *processes;
+} taskmaster_t;
+
 
 static const struct
 {
 	const char *name;
 	int value;
-} signal_list[] = {
+}
+
+signal_list[] = {
 	{"TERM", 15},
 	{"HUP", 1},
 	{"INT", 2},
@@ -82,8 +86,13 @@ static const struct
 	{"USR1", 10},
 	{"USR2", 12},
 };
+
 static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
 
+//
+// Parsing
+//
+status_t init_config(const char *const config, taskmaster_t *taskmaster);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
 bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);
 bool assign_non_empty_string(const char **variable, const cJSON *const value);
@@ -94,5 +103,7 @@ bool assign_umask(int *umask_var, const cJSON *const umask);
 bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
 bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
+
+void free_processes(process_t *const processes, int processes_len);
 
 #endif
