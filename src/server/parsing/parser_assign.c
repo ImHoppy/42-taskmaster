@@ -1,4 +1,4 @@
-#include "cjson/cJSON.h"
+#include "cJSON.h"
 #include "taskmaster.h"
 #include <stdio.h>
 #include <errno.h>
@@ -197,7 +197,8 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 	return false;
 }
 
-bool assign_non_negative(uint32_t *variable, const cJSON *const value) {
+bool assign_non_negative(uint32_t *variable, const cJSON *const value)
+{
 	if (value == NULL || variable == NULL)
 		return true;
 	if (value->valueint < 0 || value->valueint > INT32_MAX)

@@ -18,3 +18,5 @@ _deps
 build
 cjson
 taskmaster
+taskmasterd
+taskmasterctl

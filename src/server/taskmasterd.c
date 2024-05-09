@@ -1,4 +1,4 @@
-#include "cjson/cJSON.h"
+#include "cJSON.h"
 #include "taskmaster.h"
 #include <stdint.h>
 #include <stdlib.h>
