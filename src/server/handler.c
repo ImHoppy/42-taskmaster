@@ -206,4 +206,20 @@ status_t handler(taskmaster_t *taskmaster)
 	}
 }
 
+void murder_my_children(taskmaster_t *taskmaster)
+{
+	for (int process_index = 0; process_index < taskmaster->processes_len; process_index++)
+	{
+		process_t *current_process = &(taskmaster->processes[process_index]);
+		for (uint32_t child_index = 0; child_index < current_process->config.numprocs; child_index++)
+		{
+			process_child_t *child = &(current_process->children[child_index]);
+			if (child->pid > 0)
+			{
+				kill(child->pid, SIGINT);
+				child->pid = 0;
+			}
+		}
+	}
+}
 // Signal SIGCONT ?
