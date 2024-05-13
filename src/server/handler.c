@@ -51,7 +51,7 @@
 // // }
 
 status_t routine(taskmaster_t *taskmaster) {
-	int process_number = cJSON_GetArraySize(taskmaster->processes_config);
+	int process_number = taskmaster->processes_len;
 
 	while(1) {
 		for(int i = 0; i < process_number; i++) {

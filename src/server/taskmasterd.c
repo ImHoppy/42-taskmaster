@@ -1,3 +1,4 @@
+
 #include "cJSON.h"
 #include "taskmasterd.h"
 #include <stdint.h>
@@ -32,13 +33,15 @@ int main(int ac, char **av)
 		return 1;
 	}
 	fread(config_str, sizeof(char), size_file, config);
-	taskmaster_t taskmaster;
-	init_config(config_str, &taskmaster);
-
-	routine(&taskmaster);
-
-	cJSON_Delete(taskmaster.processes_config);
-	free_processes(taskmaster.processes, cJSON_GetArraySize(taskmaster.processes_config));
+	taskmaster_t taskmaster = {0};
+	if (init_config(config_str, &taskmaster) == FAILURE)
+		fprintf(stderr, "Error: init_config failed\n");
+	else
+	{
+		routine(&taskmaster);
+		cJSON_Delete(taskmaster.processes_config);
+		free_processes(taskmaster.processes, taskmaster.processes_len);
+	}
 	free(config_str);
 	fclose(config);
 	return 0;
