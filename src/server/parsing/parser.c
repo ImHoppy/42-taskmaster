@@ -89,12 +89,10 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 	return SUCCESS;
 }
 
-void processes_default_value(process_t *processes, int processes_len)
+void processes_default_config(process_t *processes, int processes_len)
 {
 	for (int i = 0; i < processes_len; i++)
 	{
-		processes[i].state = STOPPED;
-
 		processes[i].config.name = NULL;
 		processes[i].config.cmd = NULL;
 		processes[i].config.numprocs = 1;
@@ -170,10 +168,10 @@ void free_processes(process_t *const processes, int processes_len)
 			free(processes[i].config.envs);
 			processes[i].config.envs = NULL;
 		}
-		if (processes[i].pids != NULL)
+		if (processes[i].children != NULL)
 		{
-			free(processes[i].pids);
-			processes[i].pids = NULL;
+			free(processes[i].children);
+			processes[i].children = NULL;
 		}
 	}
 
@@ -209,7 +207,7 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 		cJSON_Delete(taskmaster->processes_config);
 		return FAILURE;
 	}
-	processes_default_value(taskmaster->processes, processes_len);
+	processes_default_config(taskmaster->processes, processes_len);
 
 	if (parse_config(taskmaster->processes_config, taskmaster->processes) == FAILURE)
 	{
@@ -218,10 +216,11 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 		return FAILURE;
 	}
 
-	for (int i = 0; i < processes_len; i++)
+	for (int process_index = 0; process_index < processes_len; process_index++)
 	{
-		taskmaster->processes[i].pids = calloc(sizeof(pid_t), taskmaster->processes->config.numprocs);
-		if (taskmaster->processes[i].pids == NULL)
+		process_t *process = &(taskmaster->processes[process_index]);
+		process->children = calloc(sizeof(process_child_t), process->config.numprocs);
+		if (process->children == NULL)
 		{
 			cJSON_Delete(taskmaster->processes_config);
 			free_processes(taskmaster->processes, processes_len);

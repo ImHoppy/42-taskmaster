@@ -68,10 +68,15 @@ typedef struct
 typedef struct
 {
 	process_state_t state;
-	process_config_t config;
 	clock_t starting_time;
 	uint32_t retries_number;
-	pid_t *pids;
+	pid_t pid;
+} process_child_t;
+
+typedef struct
+{
+	process_config_t config;
+	process_child_t *children;
 } process_t;
 
 typedef struct

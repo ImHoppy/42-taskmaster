@@ -84,7 +84,7 @@ status_t child_creation(taskmaster_t *taskmaster)
 			else if (pid > 0)
 			{
 				fprintf(stdout, "Child is created %d\n!", pid);
-				current_process->pids[j] = pid;
+				current_process->children[j].pid = pid;
 			}
 		}
 	}
@@ -92,23 +92,23 @@ status_t child_creation(taskmaster_t *taskmaster)
 	return SUCCESS;
 }
 
-void exit_handling(process_t *process)
+void exit_handling(process_child_t *child)
 {
-	if (process->state == RUNNING)
+	if (child->state == RUNNING)
 	{
-		process->state = STOPPING;
+		child->state = STOPPING;
 		// time is spending between each status ?
-		process->state = STOPPED;
+		child->state = STOPPED;
 	}
 }
 
-void restart_handling(process_t *process)
+void restart_handling(process_child_t *child)
 {
-	if (process->state == FATAL)
+	if (child->state == FATAL)
 	{
-		process->retries_number = 0;
-		process->state = STARTING;
-		process->starting_time = clock();
+		child->retries_number = 0;
+		child->state = STARTING;
+		child->starting_time = clock();
 	}
 }
 
@@ -125,70 +125,69 @@ status_t handler(taskmaster_t *taskmaster)
 			int status;
 
 			process_t *current_process = &(taskmaster->processes[i]);
-
-			if ((current_process->state == STOPPED ||
-				 current_process->state == EXITED) &&
-				current_process->config.autostart == true)
+			for (uint32_t child_index = 0; child_index < current_process->config.numprocs; child_index++)
 			{
-				current_process->state = STARTING;
-				current_process->starting_time = clock();
-			}
-			else if (current_process->state == STARTING)
-			{
-				uint32_t time_spent =
-					(clock() - current_process->starting_time) / CLOCKS_PER_SEC;
+				process_child_t *child = &(current_process->children[child_index]);
 
-				// if process->pid == 0, create only fork and skip next check
-				if (time_spent == current_process->config.starttime)
+				if ((child->state == STOPPED ||
+					 child->state == EXITED) &&
+					current_process->config.autostart == true)
 				{
-					current_process->state = RUNNING;
+					child->state = STARTING;
+					child->starting_time = clock();
 				}
-				else if (current_process->config.starttime == 0)
+				else if (child->state == STARTING)
 				{
-					current_process->state = RUNNING;
+					uint32_t time_spent =
+						(clock() - child->starting_time) / CLOCKS_PER_SEC;
+
+					// if process->pid == 0, create only fork and skip next check
+					if (time_spent == current_process->config.starttime)
+					{
+						child->state = RUNNING;
+					}
+					else if (current_process->config.starttime == 0)
+					{
+						child->state = RUNNING;
+					}
 				}
-			}
-			//  else if (current_process->state == BACKOFF)
-			// {
-			// 	//
-			// 	if (current_process->config.startretries <
-			// current_process->retries_number)
-			// 	{
-			// 		// backof time < 5
+				//  else if (child->state == BACKOFF)
+				// {
+				// 	//
+				// 	if (current_process->config.startretries <
+				// child->retries_number)
+				// 	{
+				// 		// backof time < 5
 
-			// 		// backof time >= 5 -> state starting, set pid = 0
-			// 	} else {
-			// 		current_process->state = FATAL;
-			// 	}
-			// }
+				// 		// backof time >= 5 -> state starting, set pid = 0
+				// 	} else {
+				// 		child->state = FATAL;
+				// 	}
+				// }
 
-			// WNOHANG --> avoid blocking of father
-			//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
-			//  children (success) WIFSIGNALED(status) --> TRUE if exit with signal
-			//  						--> WTERMSIG(status) to
-			//  obtain signal number waitpid();
+				// WNOHANG --> avoid blocking of father
+				//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
+				//  children (success) WIFSIGNALED(status) --> TRUE if exit with signal
+				//  						--> WTERMSIG(status) to
+				//  obtain signal number waitpid();
 
-			// Exit !user action
-			//  		uint32_t time_spent = (clock() - process->starting_time)
-			//  / CLOCKS_PER_SEC; if (process->state == STARTING && time_spent <
-			//  process->config.starttime) { 	process->state = BACKOFF;
-			//  	process->retries_number++;
-			//  }
+				// Exit !user action
+				//  		uint32_t time_spent = (clock() - process->starting_time)
+				//  / CLOCKS_PER_SEC; if (process->state == STARTING && time_spent <
+				//  process->config.starttime) { 	process->state = BACKOFF;
+				//  	process->retries_number++;
+				//  }
 
-			// WNOHANG : Avoid blocking if child is not terminated
-			for (uint32_t pid_index = 0; pid_index < current_process->config.numprocs;
-				 pid_index++)
-			{
+				// WNOHANG : Avoid blocking if child is not terminated
 				status = 0;
-				pid_t current_pid = current_process->pids[pid_index];
-				if (current_pid == 0)
+				if (child->pid == 0)
 				{
 					continue;
 				}
-				int ret = waitpid(current_pid, &status, WNOHANG);
+				int ret = waitpid(child->pid, &status, WNOHANG);
 				if (ret == -1)
 				{
-					fprintf(stderr, "Error when waitpid %d\n", current_pid);
+					fprintf(stderr, "Error when waitpid %d\n", child->pid);
 				}
 				else if (ret > 0)
 				{
@@ -200,7 +199,7 @@ status_t handler(taskmaster_t *taskmaster)
 					if (WIFEXITED(status))
 						fprintf(stderr, "Child is terminated with exit code %d\n",
 								WEXITSTATUS(status));
-					current_process->pids[pid_index] = 0;
+					child->pid = 0;
 				}
 			}
 		}
