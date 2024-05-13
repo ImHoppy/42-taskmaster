@@ -32,8 +32,13 @@ int main(int ac, char **av)
 		return 1;
 	}
 	fread(config_str, sizeof(char), size_file, config);
-	init_config(config_str);
+	taskmaster_t taskmaster;
+	init_config(config_str, &taskmaster);
 
+	routine(&taskmaster);
+
+	cJSON_Delete(taskmaster.processes_config);
+	free_processes(taskmaster.processes, cJSON_GetArraySize(taskmaster.processes_config));
 	free(config_str);
 	fclose(config);
 	return 0;
