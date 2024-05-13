@@ -170,7 +170,13 @@ void free_processes(process_t *const processes, int processes_len)
 			free(processes[i].config.envs);
 			processes[i].config.envs = NULL;
 		}
+		if (processes[i].pids != NULL)
+		{
+			free(processes[i].pids);
+			processes[i].pids = NULL;
+		}
 	}
+
 	free(processes);
 }
 
@@ -211,7 +217,18 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 		free_processes(taskmaster->processes, processes_len);
 		return FAILURE;
 	}
-	print_config(taskmaster->processes, processes_len);
 
+	for (int i = 0; i < processes_len; i++)
+	{
+		taskmaster->processes[i].pids = calloc(sizeof(pid_t), taskmaster->processes->config.numprocs);
+		if (taskmaster->processes[i].pids == NULL)
+		{
+			cJSON_Delete(taskmaster->processes_config);
+			free_processes(taskmaster->processes, processes_len);
+			return FAILURE;
+		}
+	}
+
+	print_config(taskmaster->processes, processes_len);
 	return SUCCESS;
 }
