@@ -55,7 +55,7 @@
 
 status_t child_creation(taskmaster_t *taskmaster)
 {
-	int process_number = cJSON_GetArraySize(taskmaster->processes_config);
+	int process_number = taskmaster->processes_len;
 	printf("NUMBER OF PROCESS: %d\n", process_number);
 
 	for (int i = 0; i < process_number; i++)

@@ -193,41 +193,41 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 		return FAILURE;
 	}
 
-	int processes_len = cJSON_GetArraySize(taskmaster->processes_config);
-	if (processes_len <= 0 || (taskmaster->processes_config->type & 0xFF) != cJSON_Array)
+	taskmaster->processes_len = cJSON_GetArraySize(taskmaster->processes_config);
+	if (taskmaster->processes_len <= 0 || (taskmaster->processes_config->type & 0xFF) != cJSON_Array)
 	{
 		fprintf(stderr, "Error: config must be an array of objects\n");
 		cJSON_Delete(taskmaster->processes_config);
 		return FAILURE;
 	}
 
-	taskmaster->processes = calloc(sizeof(process_t), processes_len);
+	taskmaster->processes = calloc(sizeof(process_t), taskmaster->processes_len);
 	if (taskmaster->processes == NULL)
 	{
 		cJSON_Delete(taskmaster->processes_config);
 		return FAILURE;
 	}
-	processes_default_config(taskmaster->processes, processes_len);
+	processes_default_config(taskmaster->processes, taskmaster->processes_len);
 
 	if (parse_config(taskmaster->processes_config, taskmaster->processes) == FAILURE)
 	{
 		cJSON_Delete(taskmaster->processes_config);
-		free_processes(taskmaster->processes, processes_len);
+		free_processes(taskmaster->processes, taskmaster->processes_len);
 		return FAILURE;
 	}
 
-	for (int process_index = 0; process_index < processes_len; process_index++)
+	for (int process_index = 0; process_index < taskmaster->processes_len; process_index++)
 	{
 		process_t *process = &(taskmaster->processes[process_index]);
 		process->children = calloc(sizeof(process_child_t), process->config.numprocs);
 		if (process->children == NULL)
 		{
 			cJSON_Delete(taskmaster->processes_config);
-			free_processes(taskmaster->processes, processes_len);
+			free_processes(taskmaster->processes, taskmaster->processes_len);
 			return FAILURE;
 		}
 	}
 
-	print_config(taskmaster->processes, processes_len);
+	print_config(taskmaster->processes, taskmaster->processes_len);
 	return SUCCESS;
 }

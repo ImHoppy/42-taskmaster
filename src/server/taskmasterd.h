@@ -83,6 +83,7 @@ typedef struct
 {
 	cJSON *processes_config;
 	process_t *processes;
+	int processes_len;
 } taskmaster_t;
 
 static const struct
