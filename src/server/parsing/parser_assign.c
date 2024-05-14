@@ -23,7 +23,7 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 		return false;
 	}
 
-	processes->config.envs = malloc(sizeof(env_t) * envs_count);
+	processes->config.envs = calloc(envs_count + 1, sizeof(char *));
 	if (processes->config.envs == NULL)
 	{
 		fprintf(stderr, "Error: malloc failed\n");
@@ -39,9 +39,11 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 			fprintf(stderr, "Error: env %s is not a string\n", any_env->string);
 			return false;
 		}
+		processes->config.envs[env_index] = calloc(strlen(any_env->string) + strlen(any_env->valuestring) + 2, sizeof(char));
+		strncat(processes->config.envs[env_index], any_env->string, strlen(any_env->string));
+		strncat(processes->config.envs[env_index], "=", 1);
+		strncat(processes->config.envs[env_index], any_env->valuestring, strlen(any_env->valuestring));
 
-		processes->config.envs[env_index].key = any_env->string;
-		processes->config.envs[env_index].value = any_env->valuestring;
 		env_index++;
 	}
 	processes->config.envs_count = env_index;

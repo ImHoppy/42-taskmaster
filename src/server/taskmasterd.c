@@ -33,16 +33,17 @@ int main(int ac, char **av)
 		return 1;
 	}
 	fread(config_str, sizeof(char), size_file, config);
+
 	taskmaster_t taskmaster = {0};
-	if (init_config(config_str, &taskmaster) == FAILURE)
+	status_t ret = init_config(config_str, &taskmaster);
+	free(config_str);
+	fclose(config);
+	if (ret == FAILURE)
 		fprintf(stderr, "Error: init_config failed\n");
 	else
 	{
-		routine(&taskmaster);
-		cJSON_Delete(taskmaster.processes_config);
-		free_processes(taskmaster.processes, taskmaster.processes_len);
+		handler(&taskmaster);
+		free_taskmaster(&taskmaster);
 	}
-	free(config_str);
-	fclose(config);
 	return 0;
 }

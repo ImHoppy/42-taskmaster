@@ -31,7 +31,7 @@ static int get_words_count(const char *str)
 		}
 		i++;
 	}
-	return count;
+	return count + 1;
 }
 
 typedef struct

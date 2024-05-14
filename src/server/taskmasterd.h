@@ -1,12 +1,18 @@
 #ifndef TASKMASTER_H
 #define TASKMASTER_H
 
+#include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
 #include "cJSON.h"
+#include "shared.h"
 
 typedef enum
 {
@@ -42,9 +48,9 @@ typedef enum autorestart_t
 typedef struct
 {
 	const char *name;
-	const char *cmd;
+	char **cmd;
 	uint32_t numprocs;
-	env_t *envs;
+	char **envs;
 	int envs_count;
 	int umask;
 	uint8_t stopsignal;
@@ -65,16 +71,23 @@ typedef struct
 typedef struct
 {
 	process_state_t state;
-	process_config_t config;
 	clock_t starting_time;
+	uint32_t retries_number;
+	pid_t pid;
+} process_child_t;
+
+typedef struct
+{
+	process_config_t config;
+	process_child_t *children;
 } process_t;
 
-typedef struct {
-	cJSON *processes_config;
+typedef struct
+{
+	cJSON *json_config;
 	process_t *processes;
 	int processes_len;
 } taskmaster_t;
-
 
 static const struct
 {
@@ -109,8 +122,9 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
 bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 
-status_t routine(taskmaster_t *taskmaster);
+status_t handler(taskmaster_t *taskmaster);
 
 void free_processes(process_t *const processes, int processes_len);
+void free_taskmaster(taskmaster_t *taskmaster);
 
 #endif
