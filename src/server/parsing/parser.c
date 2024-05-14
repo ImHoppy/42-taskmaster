@@ -32,11 +32,11 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 	if (!optional && key == NULL)                                                    \
 		return FAILURE;
 
-status_t parse_config(const cJSON *const processes_config, process_t *processes)
+status_t parse_config(const cJSON *const json_config, process_t *processes)
 {
 	const cJSON *process = NULL;
 	int i = 0;
-	cJSON_ArrayForEach(process, processes_config)
+	cJSON_ArrayForEach(process, json_config)
 	{
 		get_key_from_json(process, name, false, cJSON_String);
 		get_key_from_json(process, cmd, false, cJSON_String);
@@ -58,7 +58,7 @@ status_t parse_config(const cJSON *const processes_config, process_t *processes)
 			return FAILURE;
 		if (!assign_non_empty_string(&processes[i].config.name, name))
 			return FAILURE;
-		if (!assign_non_empty_string(&processes[i].config.cmd, cmd))
+		if ((processes[i].config.cmd = split_space(cmd->valuestring)) == NULL)
 			return FAILURE;
 		if (!assign_non_zero_uint32(&processes[i].config.numprocs, numprocs))
 			return FAILURE;
@@ -118,7 +118,13 @@ void print_config(const process_t *const processes, int processes_len)
 	{
 		printf("%d = {\n", i);
 		printf("\tname: %s\n", processes[i].config.name);
-		printf("\tcmd: %s\n", processes[i].config.cmd);
+
+		printf("\tcmd: ");
+		for (int j = 0; processes[i].config.cmd[j]; j++)
+		{
+			printf(" %s", processes[i].config.cmd[j]);
+		}
+		printf("\n");
 		printf("\tnumprocs: %d\n", processes[i].config.numprocs);
 		printf("\tumask: 0%o\n", processes[i].config.umask);
 		for (int j = 0; j < signal_list_len; j++)
@@ -155,34 +161,6 @@ void print_config(const process_t *const processes, int processes_len)
 	}
 }
 
-void free_processes(process_t *const processes, int processes_len)
-{
-	if (processes == NULL || processes_len <= 0)
-	{
-		return;
-	}
-	for (int i = 0; i < processes_len; i++)
-	{
-		if (processes[i].config.envs != NULL)
-		{
-			for (int key_index = 0; processes[i].config.envs[key_index]; key_index++)
-			{
-				free(processes[i].config.envs[key_index]);
-				processes[i].config.envs[key_index] = NULL;
-			}
-			free(processes[i].config.envs);
-			processes[i].config.envs = NULL;
-		}
-		if (processes[i].children != NULL)
-		{
-			free(processes[i].children);
-			processes[i].children = NULL;
-		}
-	}
-
-	free(processes);
-}
-
 void child_default_values(process_child_t *child)
 {
 	child->state = STOPPED;
@@ -190,38 +168,38 @@ void child_default_values(process_child_t *child)
 
 status_t init_config(const char *const config, taskmaster_t *taskmaster)
 {
-	taskmaster->processes_config = cJSON_Parse(config);
-	// printf("%s\n", cJSON_Print(processes_config));
-	if (taskmaster->processes_config == NULL)
+	taskmaster->json_config = cJSON_Parse(config);
+	// printf("%s\n", cJSON_Print(json_config));
+	if (taskmaster->json_config == NULL)
 	{
 		const char *error_ptr = cJSON_GetErrorPtr();
 		if (error_ptr != NULL)
 		{
 			fprintf(stderr, "Error before: %s\n", error_ptr);
 		}
-		cJSON_Delete(taskmaster->processes_config);
+		cJSON_Delete(taskmaster->json_config);
 		return FAILURE;
 	}
 
-	taskmaster->processes_len = cJSON_GetArraySize(taskmaster->processes_config);
-	if (taskmaster->processes_len <= 0 || (taskmaster->processes_config->type & 0xFF) != cJSON_Array)
+	taskmaster->processes_len = cJSON_GetArraySize(taskmaster->json_config);
+	if (taskmaster->processes_len <= 0 || (taskmaster->json_config->type & 0xFF) != cJSON_Array)
 	{
 		fprintf(stderr, "Error: config must be an array of objects\n");
-		cJSON_Delete(taskmaster->processes_config);
+		cJSON_Delete(taskmaster->json_config);
 		return FAILURE;
 	}
 
 	taskmaster->processes = calloc(sizeof(process_t), taskmaster->processes_len);
 	if (taskmaster->processes == NULL)
 	{
-		cJSON_Delete(taskmaster->processes_config);
+		cJSON_Delete(taskmaster->json_config);
 		return FAILURE;
 	}
 	processes_default_config(taskmaster->processes, taskmaster->processes_len);
 
-	if (parse_config(taskmaster->processes_config, taskmaster->processes) == FAILURE)
+	if (parse_config(taskmaster->json_config, taskmaster->processes) == FAILURE)
 	{
-		cJSON_Delete(taskmaster->processes_config);
+		cJSON_Delete(taskmaster->json_config);
 		free_processes(taskmaster->processes, taskmaster->processes_len);
 		return FAILURE;
 	}
@@ -232,7 +210,7 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 		process->children = calloc(sizeof(process_child_t), process->config.numprocs);
 		if (process->children == NULL)
 		{
-			cJSON_Delete(taskmaster->processes_config);
+			cJSON_Delete(taskmaster->json_config);
 			free_processes(taskmaster->processes, taskmaster->processes_len);
 			return FAILURE;
 		}

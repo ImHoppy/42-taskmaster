@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "cJSON.h"
+#include "shared.h"
 
 typedef enum
 {
@@ -47,7 +48,7 @@ typedef enum autorestart_t
 typedef struct
 {
 	const char *name;
-	const char *cmd;
+	char **cmd;
 	uint32_t numprocs;
 	char **envs;
 	int envs_count;
@@ -83,7 +84,7 @@ typedef struct
 
 typedef struct
 {
-	cJSON *processes_config;
+	cJSON *json_config;
 	process_t *processes;
 	int processes_len;
 } taskmaster_t;
@@ -124,5 +125,6 @@ bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 status_t handler(taskmaster_t *taskmaster);
 
 void free_processes(process_t *const processes, int processes_len);
+void free_taskmaster(taskmaster_t *taskmaster);
 
 #endif

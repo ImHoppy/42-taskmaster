@@ -1,6 +1,6 @@
 #include "taskmasterd.h"
 
-status_t child_creation(process_t *process, uint32_t child_index)
+status_t child_creation(taskmaster_t *taskmaster, process_t *process, uint32_t child_index)
 {
 	pid_t pid = fork();
 
@@ -11,16 +11,8 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 	else if (pid == 0)
 	{
-		int len = strcspn(process->config.cmd, " ");
-		char *command_path = calloc(sizeof(char), len + 1);
-		strncpy(command_path, process->config.cmd, len);
-		fprintf(stdout, "Command_path %s\n", command_path);
-
-		// while (getpid() % 2 == 0)
-		// {
-		// }
-
-		// execve(command_path, process->config.cmd, process->config.envs);
+		execve(process->config.cmd[0], process->config.cmd, process->config.envs);
+		free_taskmaster(taskmaster);
 		exit(1);
 	}
 	else if (pid > 0)
@@ -54,7 +46,7 @@ void restart_handling(process_child_t *child)
 
 status_t handler(taskmaster_t *taskmaster)
 {
-	int process_number = cJSON_GetArraySize(taskmaster->processes_config);
+	int process_number = cJSON_GetArraySize(taskmaster->json_config);
 	while (1)
 	{
 		for (int i = 0; i < process_number; i++)
@@ -70,7 +62,7 @@ status_t handler(taskmaster_t *taskmaster)
 					 child->state == EXITED) &&
 					current_process->config.autostart == true)
 				{
-					if (child_creation(current_process, child_index) == FAILURE)
+					if (child_creation(taskmaster, current_process, child_index) == FAILURE)
 						return FAILURE;
 					child->state = STARTING;
 					child->starting_time = clock();
@@ -142,7 +134,9 @@ status_t handler(taskmaster_t *taskmaster)
 				}
 			}
 		}
+		break;
 	}
+	return SUCCESS;
 }
 
 void murder_my_children(taskmaster_t *taskmaster)
