@@ -132,7 +132,7 @@ void print_config(const process_t *const processes, int processes_len)
 		printf("\tenvs: %d\n", processes[i].config.envs_count);
 		for (int j = 0; j < processes[i].config.envs_count; j++)
 		{
-			printf("\t[%d]: %s=%s\n", j, processes[i].config.envs[j].key, processes[i].config.envs[j].value);
+			printf("\tEnv: %s\n", processes[i].config.envs[j]);
 		}
 		printf("\texitcodes: [ ");
 		for (int j = 0; j < 256; j++)
@@ -165,6 +165,11 @@ void free_processes(process_t *const processes, int processes_len)
 	{
 		if (processes[i].config.envs != NULL)
 		{
+			for (int key_index = 0; processes[i].config.envs[key_index]; key_index++)
+			{
+				free(processes[i].config.envs[key_index]);
+				processes[i].config.envs[key_index] = NULL;
+			}
 			free(processes[i].config.envs);
 			processes[i].config.envs = NULL;
 		}
@@ -176,6 +181,11 @@ void free_processes(process_t *const processes, int processes_len)
 	}
 
 	free(processes);
+}
+
+void child_default_values(process_child_t *child)
+{
+	child->state = STOPPED;
 }
 
 status_t init_config(const char *const config, taskmaster_t *taskmaster)
@@ -226,6 +236,8 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 			free_processes(taskmaster->processes, taskmaster->processes_len);
 			return FAILURE;
 		}
+		for (uint32_t child_index = 0; child_index < process->config.numprocs; child_index++)
+			child_default_values(&(process->children[child_index]));
 	}
 
 	print_config(taskmaster->processes, taskmaster->processes_len);

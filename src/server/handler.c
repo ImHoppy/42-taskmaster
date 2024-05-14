@@ -1,92 +1,32 @@
 #include "taskmasterd.h"
 
-// status_t user_start_process(char *process_name) {
-// 	// find process
-// 	process_t *process = NULL;
-
-// 	if (process == NULL) {
-// 		// repond  à l'user process inconnu
-// 		return (FAILURE);
-// 	}
-
-// 	if (process->state == STOPPED || process->state == FATAL ||
-// process->state == EXITED) { 		process->state = STARTING;
-// 		// repond ok à user
-// 		return (SUCCESS);
-// 	}
-// 	// Reponse à lúser quiíl ne peut pas
-// 	return (FAILURE);
-// }
-
-// bool set_running_state(process_t *process, bool user_action) {
-// 	if(process == NULL)
-// 		return FAILURE;
-
-// 	if (process->state == STOPPED &&
-// 	(process->config.autostart || user_action)) {
-// 		process->state = STARTING;
-// 	}
-
-// 	return SUCCESS;
-// }
-
-// // while (1) {
-// // 	current_process.state == STARTING {
-// // 		current_time = ;
-// // 		start_time = current_process.start_time
-// // 		// Check pid still valid and not greater than config startSec
-// // 		if start_time > (current_process.config.startsec * 1000) +
-// current_time {
-// // 			current_process.state = RUNNING;
-// // 		}
-// // 		else if have exited early {
-// // 			current_process.tentative++;
-// // 				current_process.state = BACKOFF;
-// // 			if (current_process.tentative >=
-// current_process.config.startretries)
-// // 				current_process.state = FATAL;
-// // 		}
-// // 	}
-// // 	current_process.state == EXITED && current_process.config.autorestart ==
-// true {
-// // 		state = STARTING
-// // 	}
-// // }
-
-status_t child_creation(taskmaster_t *taskmaster)
+status_t child_creation(process_t *process, uint32_t child_index)
 {
-	int process_number = taskmaster->processes_len;
-	printf("NUMBER OF PROCESS: %d\n", process_number);
+	pid_t pid = fork();
 
-	for (int i = 0; i < process_number; i++)
+	if (pid == -1)
 	{
-		process_t *current_process = &(taskmaster->processes[i]);
-		int number_of_instance = taskmaster->processes[i].config.numprocs;
+		fprintf(stderr, "Error occured during the fork.");
+		return FAILURE;
+	}
+	else if (pid == 0)
+	{
+		int len = strcspn(process->config.cmd, " ");
+		char *command_path = calloc(sizeof(char), len + 1);
+		strncpy(command_path, process->config.cmd, len);
+		fprintf(stdout, "Command_path %s\n", command_path);
 
-		// Array of PID
-		for (int j = 0; j < number_of_instance; j++)
-		{
-			pid_t pid = fork();
+		// while (getpid() % 2 == 0)
+		// {
+		// }
 
-			if (pid == -1)
-			{
-				fprintf(stderr, "Error occured during the fork.");
-				return FAILURE;
-			}
-			else if (pid == 0)
-			{
-				while (getpid() % 2 == 0)
-				{
-				}
-
-				exit(1);
-			}
-			else if (pid > 0)
-			{
-				fprintf(stdout, "Child is created %d\n!", pid);
-				current_process->children[j].pid = pid;
-			}
-		}
+		// execve(command_path, process->config.cmd, process->config.envs);
+		exit(1);
+	}
+	else if (pid > 0)
+	{
+		fprintf(stdout, "Child is created %d\n", pid);
+		process->children[child_index].pid = pid;
 	}
 
 	return SUCCESS;
@@ -115,9 +55,6 @@ void restart_handling(process_child_t *child)
 status_t handler(taskmaster_t *taskmaster)
 {
 	int process_number = cJSON_GetArraySize(taskmaster->processes_config);
-	if (child_creation(taskmaster) == FAILURE)
-		return FAILURE;
-
 	while (1)
 	{
 		for (int i = 0; i < process_number; i++)
@@ -133,6 +70,8 @@ status_t handler(taskmaster_t *taskmaster)
 					 child->state == EXITED) &&
 					current_process->config.autostart == true)
 				{
+					if (child_creation(current_process, child_index) == FAILURE)
+						return FAILURE;
 					child->state = STARTING;
 					child->starting_time = clock();
 				}

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
@@ -48,7 +49,7 @@ typedef struct
 	const char *name;
 	const char *cmd;
 	uint32_t numprocs;
-	env_t *envs;
+	char **envs;
 	int envs_count;
 	int umask;
 	uint8_t stopsignal;
