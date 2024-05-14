@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.22)
 
 project(taskmaster)
 
+
+# Include the libsocket directory
+add_subdirectory(libsocket)
+
+SET(BUILD_STATIC_LIBS ON)
+
 set(CMAKE_CXX_STANDARD 14)
 # set(CMAKE_VERBOSE_MAKEFILE on)
 
@@ -17,9 +23,9 @@ file(GLOB_RECURSE SOURCES_CLIENT "src/client/*.c")
 add_executable(taskmasterctl ${SOURCES_CLIENT} ${SOURCES_SHARED})
 target_include_directories(taskmasterctl PRIVATE src/client)
 target_include_directories(taskmasterctl PRIVATE src/shared)
-# Link readline library
-target_link_libraries(taskmasterctl readline)
-
+target_include_directories(taskmasterctl PRIVATE libsocket)
+# Link readline and libsocket libraries
+target_link_libraries(taskmasterctl PRIVATE readline socket_int)
 #
 # Server Executable
 #
@@ -32,6 +38,8 @@ add_executable(taskmasterd ${SOURCES_SERVER} ${SOURCES_SHARED})
 target_include_directories(taskmasterd PRIVATE src/server)
 target_include_directories(taskmasterd PRIVATE src/shared)
 target_include_directories(taskmasterd PRIVATE cjson)
+target_include_directories(taskmasterd PRIVATE libsocket)
+target_link_libraries(taskmasterd PRIVATE socket_int)
 
 set(CMAKE_BUILD_TYPE Debug)
 

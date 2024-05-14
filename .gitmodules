@@ -2,3 +2,6 @@
 	path = cjson
 	url = https://github.com/DaveGamble/cJSON.git
 	ignore = dirty
+[submodule "libsocket"]
+	path = libsocket
+	url = https://github.com/dermesser/libsocket.git
