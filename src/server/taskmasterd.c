@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <errno.h>
+#include "headers/libunixsocket.h"
 
 int main(int ac, char **av)
 {
@@ -39,11 +41,20 @@ int main(int ac, char **av)
 	free(config_str);
 	fclose(config);
 	if (ret == FAILURE)
-		fprintf(stderr, "Error: init_config failed\n");
-	else
 	{
-		handler(&taskmaster);
-		free_taskmaster(&taskmaster);
+		fprintf(stderr, "Error: init_config failed\n");
+		return 1;
 	}
+
+	ret = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, 0);
+	if (ret == FAILURE)
+	{
+		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));
+		free_taskmaster(&taskmaster);
+		return 1;
+	}
+
+	handler(&taskmaster);
+	free_taskmaster(&taskmaster);
 	return 0;
 }
