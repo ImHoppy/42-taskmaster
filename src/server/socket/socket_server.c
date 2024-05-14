@@ -91,3 +91,36 @@ int create_socket(const char *socket_path, int flags)
 
 	return sfd;
 }
+
+/**
+ * @brief Close a socket
+ *
+ * This function uses the `close(2)` system call to close a socket.
+ *
+ * @param sfd The socket file descriptor
+ *
+ * @retval 0 Success
+ * @retval -1 Socket was already closed
+ */
+int destroy_socket(int sfd)
+{
+	if (sfd < 0)
+		return FAILURE;
+
+	if (close(sfd) < 0)
+	{
+		debug_write(strerror(errno));
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
+int accept_stream_socket(int fds, int flags)
+{
+}
+
+int create_server_socket(const char *path, int socktype, int flags)
+{
+	return SUCCESS;
+}
