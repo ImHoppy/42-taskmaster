@@ -22,3 +22,6 @@ libsocket
 taskmaster
 taskmasterd
 taskmasterctl
+
+# Test
+tests/wait
