@@ -94,9 +94,7 @@ static const struct
 {
 	const char *name;
 	int value;
-}
-
-signal_list[] = {
+} signal_list[] = {
 	{"TERM", 15},
 	{"HUP", 1},
 	{"INT", 2},

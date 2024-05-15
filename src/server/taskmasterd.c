@@ -7,6 +7,8 @@
 #include <limits.h>
 #include <errno.h>
 #include "headers/libunixsocket.h"
+#include <sys/epoll.h>
+#include "epoll.h"
 
 int main(int ac, char **av)
 {
@@ -46,20 +48,31 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	ret = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, 0);
-	if (ret == FAILURE)
+	server_socket_t server_socket = {0};
+	server_socket.sfd = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, 0);
+	if (server_socket.sfd == FAILURE)
 	{
 		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));
 		free_taskmaster(&taskmaster);
 		return 1;
 	}
 
+	server_socket.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+	if (server_socket.epoll_fd < 0)
+	{
+		fprintf(stderr, "Error creating epoll instance: %s\n", strerror(errno));
+		free_taskmaster(&taskmaster);
+		return 1;
+	}
 
 	while (1)
 	{
+		if (handle_epoll(&server_socket) < 0)
+			break;
 		// Handle each process
 		handler(&taskmaster);
 	}
 	free_taskmaster(&taskmaster);
+	close(server_socket.epoll_fd);
 	return 0;
 }
