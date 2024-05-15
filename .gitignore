@@ -18,7 +18,6 @@ _deps
 # build output
 build
 cjson
-libsocket
 taskmaster
 taskmasterd
 taskmasterctl

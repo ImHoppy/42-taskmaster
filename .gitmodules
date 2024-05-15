@@ -5,3 +5,4 @@
 [submodule "libsocket"]
 	path = libsocket
 	url = https://github.com/dermesser/libsocket.git
+	ignore = dirty
