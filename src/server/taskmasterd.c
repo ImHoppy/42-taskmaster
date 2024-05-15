@@ -57,8 +57,7 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	server_socket.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
-	if (server_socket.epoll_fd < 0)
+	if (init_epoll(&server_socket) < 0)
 	{
 		fprintf(stderr, "Error creating epoll instance: %s\n", strerror(errno));
 		free_taskmaster(&taskmaster);

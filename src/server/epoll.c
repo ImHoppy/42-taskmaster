@@ -14,7 +14,7 @@ int init_epoll(server_socket_t *server_socket)
 		return -1;
 	}
 
-	if (add_epoll_event(server_socket, server_socket->sfd, EPOLLIN) < 0)
+	if (add_epoll_event(server_socket, server_socket->sfd, EPOLLIN, NULL) < 0)
 	{
 		fprintf(stderr, "Error adding epoll event: %s\n", strerror(errno));
 		return 1;
@@ -23,11 +23,12 @@ int init_epoll(server_socket_t *server_socket)
 	return 0;
 }
 
-int add_epoll_event(server_socket_t *server_socket, int fd, uint32_t events)
+int add_epoll_event(server_socket_t *server_socket, int fd, uint32_t events, void *data)
 {
 	struct epoll_event ev = {0};
 	ev.events = events;
 	ev.data.fd = fd;
+	ev.data.ptr = data;
 	return epoll_ctl(server_socket->epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
@@ -36,8 +37,21 @@ int remove_epoll_event(server_socket_t *server_socket, int fd)
 	return epoll_ctl(server_socket->epoll_fd, EPOLL_CTL_DEL, fd, NULL);
 }
 
+static void shift_clients(client_data_t *clients[], int *clients_count, int index)
+{
+	for (int i = index; i < *clients_count - 1; i++)
+	{
+		clients[i] = clients[i + 1];
+		clients[i]->index = i;
+	}
+	(*clients_count)--;
+}
+
 int handle_epoll(server_socket_t *server_socket)
 {
+	static client_data_t *clients[MAX_EPOLL_EVENTS] = {0};
+	static int clients_count = 0;
+
 	struct epoll_event *events = server_socket->events;
 
 	int nfds = epoll_wait(server_socket->epoll_fd, events, MAX_EPOLL_EVENTS, 0);
@@ -55,18 +69,96 @@ int handle_epoll(server_socket_t *server_socket)
 			fprintf(stderr, "Error in epoll event\n");
 			remove_epoll_event(server_socket, events[i].data.fd);
 			close(events[i].data.fd);
+			if (events[i].data.ptr != NULL)
+			{
+				client_data_t *client = events[i].data.ptr;
+				shift_clients(clients, &clients_count, client->index);
+				free(client);
+			}
+			else
+			{
+				// socket has error
+				return -1;
+			}
 		}
 		else if (events[i].events & EPOLLIN)
 		{
 			if (events[i].data.fd == server_socket->sfd)
 			{
-				accept_unix_stream_socket(server_socket->sfd, SOCK_NONBLOCK | SOCK_CLOEXEC);
+				if (clients_count >= MAX_EPOLL_EVENTS)
+				{
+					fprintf(stderr, "Too many clients\n");
+					continue;
+				}
+				int client_fd = accept_unix_stream_socket(server_socket->sfd, SOCK_NONBLOCK | SOCK_CLOEXEC);
+				if (client_fd < 0)
+				{
+					fprintf(stderr, "Error accepting client: %s\n", strerror(errno));
+					continue;
+				}
+				client_data_t *client = calloc(1, sizeof(client_data_t));
+
+				if (client == NULL || add_epoll_event(server_socket, client_fd, EPOLLIN, client) < 0)
+				{
+					fprintf(stderr, "Error adding client epoll event: %s\n", strerror(errno));
+					close(client_fd);
+					free(client);
+					continue;
+				}
+				client->fd = client_fd;
+				client->index = clients_count;
+				clients[clients_count++] = client;
 			}
-			// Handle incoming data
+			else if (events[i].data.ptr != NULL)
+			{
+				client_data_t *client = events[i].data.ptr;
+				char buf[1024] = {0};
+				ssize_t n = read(client->fd, buf, sizeof(buf));
+				if (n <= 0)
+				{
+					if (n < 0)
+					{
+						fprintf(stderr, "Error reading from client: %s\n", strerror(errno));
+					}
+					remove_epoll_event(server_socket, client->fd);
+					close(client->fd);
+					shift_clients(clients, &clients_count, client->index);
+					free(client);
+				}
+				else
+				{
+					fprintf(stdout, "Received: %s\n", buf);
+				}
+			}
 		}
 		if (events[i].events & EPOLLOUT)
 		{
-			// Handle outgoing data
+			// Server
+			if (events[i].data.ptr == NULL)
+			{
+			}
+			else
+			{
+				client_data_t *client = events[i].data.ptr;
+				if (client->to_send && client->buf != NULL)
+				{
+					ssize_t n = write(client->fd, client->buf, strlen(client->buf));
+					if (n < 0)
+					{
+						fprintf(stderr, "Error writing to client: %s\n", strerror(errno));
+						remove_epoll_event(server_socket, client->fd);
+						close(client->fd);
+						shift_clients(clients, &clients_count, client->index);
+						free(client);
+					}
+					else
+					{
+						client->to_send = false;
+						free(client->buf);
+						client->buf = NULL;
+					}
+				}
+			}
 		}
 	}
 	return 0;
