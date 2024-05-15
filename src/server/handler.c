@@ -24,26 +24,6 @@ status_t child_creation(taskmaster_t *taskmaster, process_t *process, uint32_t c
 	return SUCCESS;
 }
 
-void exit_handling(process_child_t *child)
-{
-	if (child->state == RUNNING)
-	{
-		child->state = STOPPING;
-		// time is spending between each status ?
-		child->state = STOPPED;
-	}
-}
-
-void restart_handling(process_child_t *child)
-{
-	if (child->state == FATAL)
-	{
-		child->retries_number = 0;
-		child->state = STARTING;
-		child->starting_time = clock();
-	}
-}
-
 status_t handler(taskmaster_t *taskmaster)
 {
 	int process_number = cJSON_GetArraySize(taskmaster->json_config);
@@ -101,20 +81,6 @@ status_t handler(taskmaster_t *taskmaster)
 				}
 			}
 
-			// WNOHANG --> avoid blocking of father
-			//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
-			//  children (success) WIFSIGNALED(status) --> TRUE if exit with signal
-			//  						--> WTERMSIG(status) to
-			//  obtain signal number waitpid();
-
-			// Exit !user action
-			//  		uint32_t time_spent = (clock() - process->starting_time)
-			//  / CLOCKS_PER_SEC; if (process->state == STARTING && time_spent <
-			//  process->config.starttime) { 	process->state = BACKOFF;
-			//  	process->retries_number++;
-			//  }
-
-			// WNOHANG : Avoid blocking if child is not terminated
 			status = 0;
 			if (child->pid == 0)
 			{
@@ -166,4 +132,3 @@ void murder_my_children(taskmaster_t *taskmaster)
 		}
 	}
 }
-// Signal SIGCONT ?

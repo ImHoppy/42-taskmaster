@@ -1,5 +1,14 @@
 #include "taskmasterd.h"
 
+void free_paths(char **paths)
+{
+	for (uint32_t path_index = 0; paths[path_index]; path_index++)
+	{
+		free(paths[path_index]);
+	}
+	free(paths);
+}
+
 void free_taskmaster(taskmaster_t *taskmaster)
 {
 	free_processes(taskmaster->processes, taskmaster->processes_len);

@@ -124,8 +124,10 @@ bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 
 status_t handler(taskmaster_t *taskmaster);
+char *get_absolute_cmd_path(char *cmd);
 
 void free_processes(process_t *const processes, int processes_len);
 void free_taskmaster(taskmaster_t *taskmaster);
+void free_paths(char **paths);
 
 #endif

@@ -60,6 +60,18 @@ status_t parse_config(const cJSON *const json_config, process_t *processes)
 			return FAILURE;
 		if ((processes[i].config.cmd = split_space(cmd->valuestring)) == NULL)
 			return FAILURE;
+
+		if (processes[i].config.cmd[0][0] != '/' && processes[i].config.cmd[0][0] != '.')
+		{
+			if ((processes[i].config.cmd[0] = get_absolute_cmd_path(processes[i].config.cmd[0])) == NULL)
+				return FAILURE;
+		}
+		else
+		{
+			if (access(processes[i].config.cmd[0], X_OK) == -1)
+				return FAILURE;
+		}
+
 		if (!assign_non_zero_uint32(&processes[i].config.numprocs, numprocs))
 			return FAILURE;
 		if (!assign_umask(&processes[i].config.umask, umask))

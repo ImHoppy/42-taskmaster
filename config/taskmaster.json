@@ -1,7 +1,7 @@
 [
 	{
 		"name": "foo",
-		"cmd": "/bin/foo",
+		"cmd": "foo",
 		"numprocs": 1,
 		"umask": "724",
 		"stopsignal": 2,
