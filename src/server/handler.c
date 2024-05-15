@@ -13,7 +13,7 @@ status_t child_creation(taskmaster_t *taskmaster, process_t *process, uint32_t c
 	{
 		execve(process->config.cmd[0], process->config.cmd, process->config.envs);
 		free_taskmaster(taskmaster);
-		exit(1);
+		exit(127);
 	}
 	else if (pid > 0)
 	{
@@ -69,11 +69,10 @@ status_t handler(taskmaster_t *taskmaster)
 				}
 				else if (child->state == STARTING)
 				{
-					uint32_t time_spent =
+					uint32_t start_spent_time =
 						(clock() - child->starting_time) / CLOCKS_PER_SEC;
 
-					// if process->pid == 0, create only fork and skip next check
-					if (time_spent == current_process->config.starttime)
+					if (start_spent_time == current_process->config.starttime)
 					{
 						child->state = RUNNING;
 					}
@@ -82,19 +81,27 @@ status_t handler(taskmaster_t *taskmaster)
 						child->state = RUNNING;
 					}
 				}
-				//  else if (child->state == BACKOFF)
-				// {
-				// 	//
-				// 	if (current_process->config.startretries <
-				// child->retries_number)
-				// 	{
-				// 		// backof time < 5
-
-				// 		// backof time >= 5 -> state starting, set pid = 0
-				// 	} else {
-				// 		child->state = FATAL;
-				// 	}
-				// }
+				else if (child->state == BACKOFF)
+				{
+					if (child->retries_number < current_process->config.startretries)
+					{
+						if (child->backoff_time == 0)
+						{
+							child->backoff_time = clock();
+						}
+						else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
+						{
+							printf("BACKOFF\n");
+							child->state = STARTING;
+							child->backoff_time = 0;
+						}
+					}
+					else
+					{
+						child->state = FATAL;
+						child->backoff_time = 0;
+					}
+				}
 
 				// WNOHANG --> avoid blocking of father
 				//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
@@ -128,13 +135,20 @@ status_t handler(taskmaster_t *taskmaster)
 							"Child is terminated because of signal non-intercepted %d\n",
 							WTERMSIG(status));
 					if (WIFEXITED(status))
-						fprintf(stderr, "Child is terminated with exit code %d\n",
-								WEXITSTATUS(status));
+					{
+						fprintf(stderr, "Child is terminated with exit code %d and state %d\n",
+								WEXITSTATUS(status), child->state);
+						// When program exit in STARTING state
+						if (child->state == STARTING)
+						{
+							child->state = BACKOFF;
+							child->retries_number++;
+						}
+					}
 					child->pid = 0;
 				}
 			}
 		}
-		break;
 	}
 	return SUCCESS;
 }

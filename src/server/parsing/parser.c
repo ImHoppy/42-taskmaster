@@ -161,7 +161,7 @@ void print_config(const process_t *const processes, int processes_len)
 	}
 }
 
-void child_default_values(process_child_t *child)
+static void child_default_values(process_child_t *child)
 {
 	child->state = STOPPED;
 }

@@ -21,3 +21,6 @@ cjson
 taskmaster
 taskmasterd
 taskmasterctl
+
+# Test
+tests/wait

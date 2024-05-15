@@ -28,14 +28,14 @@ typedef struct
 
 typedef enum
 {
-	STOPPED = 1 << 0,
-	STARTING = 1 << 1,
-	RUNNING = 1 << 2,
-	BACKOFF = 1 << 3,
-	STOPPING = 1 << 4,
-	EXITED = 1 << 5,
-	FATAL = 1 << 6,
-	UNKNOWN = 1 << 7,
+	STOPPED,
+	STARTING,
+	RUNNING,
+	BACKOFF,
+	STOPPING,
+	EXITED,
+	FATAL,
+	UNKNOWN,
 } process_state_t;
 
 typedef enum autorestart_t
@@ -74,6 +74,7 @@ typedef struct
 	clock_t starting_time;
 	uint32_t retries_number;
 	pid_t pid;
+	clock_t backoff_time;
 } process_child_t;
 
 typedef struct
