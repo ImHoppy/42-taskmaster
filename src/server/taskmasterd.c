@@ -54,7 +54,12 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	handler(&taskmaster);
+
+	while (1)
+	{
+		// Handle each process
+		handler(&taskmaster);
+	}
 	free_taskmaster(&taskmaster);
 	return 0;
 }

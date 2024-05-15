@@ -47,106 +47,103 @@ void restart_handling(process_child_t *child)
 status_t handler(taskmaster_t *taskmaster)
 {
 	int process_number = cJSON_GetArraySize(taskmaster->json_config);
-	while (1)
+	for (int i = 0; i < process_number; i++)
 	{
-		for (int i = 0; i < process_number; i++)
+		int status;
+
+		process_t *current_process = &(taskmaster->processes[i]);
+		for (uint32_t child_index = 0; child_index < current_process->config.numprocs; child_index++)
 		{
-			int status;
+			process_child_t *child = &(current_process->children[child_index]);
 
-			process_t *current_process = &(taskmaster->processes[i]);
-			for (uint32_t child_index = 0; child_index < current_process->config.numprocs; child_index++)
+			if ((child->state == STOPPED ||
+				 child->state == EXITED) &&
+				current_process->config.autostart == true)
 			{
-				process_child_t *child = &(current_process->children[child_index]);
+				if (child_creation(taskmaster, current_process, child_index) == FAILURE)
+					return FAILURE;
+				child->state = STARTING;
+				child->starting_time = clock();
+			}
+			else if (child->state == STARTING)
+			{
+				uint32_t start_spent_time =
+					(clock() - child->starting_time) / CLOCKS_PER_SEC;
 
-				if ((child->state == STOPPED ||
-					 child->state == EXITED) &&
-					current_process->config.autostart == true)
+				if (start_spent_time == current_process->config.starttime)
 				{
-					if (child_creation(taskmaster, current_process, child_index) == FAILURE)
-						return FAILURE;
-					child->state = STARTING;
-					child->starting_time = clock();
+					child->state = RUNNING;
 				}
-				else if (child->state == STARTING)
+				else if (current_process->config.starttime == 0)
 				{
-					uint32_t start_spent_time =
-						(clock() - child->starting_time) / CLOCKS_PER_SEC;
-
-					if (start_spent_time == current_process->config.starttime)
-					{
-						child->state = RUNNING;
-					}
-					else if (current_process->config.starttime == 0)
-					{
-						child->state = RUNNING;
-					}
+					child->state = RUNNING;
 				}
-				else if (child->state == BACKOFF)
+			}
+			else if (child->state == BACKOFF)
+			{
+				if (child->retries_number < current_process->config.startretries)
 				{
-					if (child->retries_number < current_process->config.startretries)
+					if (child->backoff_time == 0)
 					{
-						if (child->backoff_time == 0)
-						{
-							child->backoff_time = clock();
-						}
-						else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
-						{
-							printf("BACKOFF\n");
-							child->state = STARTING;
-							child->backoff_time = 0;
-						}
+						child->backoff_time = clock();
 					}
-					else
+					else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
 					{
-						child->state = FATAL;
+						printf("BACKOFF\n");
+						child->state = STARTING;
 						child->backoff_time = 0;
 					}
 				}
-
-				// WNOHANG --> avoid blocking of father
-				//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
-				//  children (success) WIFSIGNALED(status) --> TRUE if exit with signal
-				//  						--> WTERMSIG(status) to
-				//  obtain signal number waitpid();
-
-				// Exit !user action
-				//  		uint32_t time_spent = (clock() - process->starting_time)
-				//  / CLOCKS_PER_SEC; if (process->state == STARTING && time_spent <
-				//  process->config.starttime) { 	process->state = BACKOFF;
-				//  	process->retries_number++;
-				//  }
-
-				// WNOHANG : Avoid blocking if child is not terminated
-				status = 0;
-				if (child->pid == 0)
+				else
 				{
-					continue;
+					child->state = FATAL;
+					child->backoff_time = 0;
 				}
-				int ret = waitpid(child->pid, &status, WNOHANG);
-				if (ret == -1)
+			}
+
+			// WNOHANG --> avoid blocking of father
+			//  Error : -1, 0 (with WNOHANG) if children has not changed is state, PID
+			//  children (success) WIFSIGNALED(status) --> TRUE if exit with signal
+			//  						--> WTERMSIG(status) to
+			//  obtain signal number waitpid();
+
+			// Exit !user action
+			//  		uint32_t time_spent = (clock() - process->starting_time)
+			//  / CLOCKS_PER_SEC; if (process->state == STARTING && time_spent <
+			//  process->config.starttime) { 	process->state = BACKOFF;
+			//  	process->retries_number++;
+			//  }
+
+			// WNOHANG : Avoid blocking if child is not terminated
+			status = 0;
+			if (child->pid == 0)
+			{
+				continue;
+			}
+			int ret = waitpid(child->pid, &status, WNOHANG);
+			if (ret == -1)
+			{
+				fprintf(stderr, "Error when waitpid %d\n", child->pid);
+			}
+			else if (ret > 0)
+			{
+				if (WIFSIGNALED(status))
+					fprintf(
+						stderr,
+						"Child is terminated because of signal non-intercepted %d\n",
+						WTERMSIG(status));
+				if (WIFEXITED(status))
 				{
-					fprintf(stderr, "Error when waitpid %d\n", child->pid);
-				}
-				else if (ret > 0)
-				{
-					if (WIFSIGNALED(status))
-						fprintf(
-							stderr,
-							"Child is terminated because of signal non-intercepted %d\n",
-							WTERMSIG(status));
-					if (WIFEXITED(status))
+					fprintf(stderr, "Child is terminated with exit code %d and state %d\n",
+							WEXITSTATUS(status), child->state);
+					// When program exit in STARTING state
+					if (child->state == STARTING)
 					{
-						fprintf(stderr, "Child is terminated with exit code %d and state %d\n",
-								WEXITSTATUS(status), child->state);
-						// When program exit in STARTING state
-						if (child->state == STARTING)
-						{
-							child->state = BACKOFF;
-							child->retries_number++;
-						}
+						child->state = BACKOFF;
+						child->retries_number++;
 					}
-					child->pid = 0;
 				}
+				child->pid = 0;
 			}
 		}
 	}
