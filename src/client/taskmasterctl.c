@@ -1,15 +1,22 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "input/readline.h"
+#include "taskmasterctl.h"
 
 int done = 0;
 
-int main(void)
+int main(int ac, char **av)
 {
 	char *line, *s;
-
+	int sfd = initialize_socket(ac > 1 ? av[1] : "/tmp/taskmasterd.sock");
+	if (sfd < 0)
+	{
+		fprintf(stderr, "Failed to connect to the server\n");
+		exit(1);
+	}
 	initialize_readline(); /* Bind our completer. */
 
 	/* Loop reading and executing lines until the user quits. */
