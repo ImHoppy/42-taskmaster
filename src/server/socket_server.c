@@ -1,7 +1,7 @@
 #include <sys/epoll.h>
 #include <stdio.h>
 #include <errno.h>
-#include "epoll.h"
+#include "socket_server.h"
 #include "taskmasterd.h"
 #include "headers/libunixsocket.h"
 
@@ -27,7 +27,6 @@ int add_epoll_event(server_socket_t *server_socket, int fd, uint32_t events, voi
 {
 	struct epoll_event ev = {0};
 	ev.events = events;
-	ev.data.fd = fd;
 	ev.data.ptr = data;
 	return epoll_ctl(server_socket->epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
@@ -83,7 +82,8 @@ int handle_epoll(server_socket_t *server_socket)
 		}
 		else if (events[i].events & EPOLLIN)
 		{
-			if (events[i].data.fd == server_socket->sfd)
+			// Server, new client
+			if (events[i].data.ptr == NULL)
 			{
 				if (clients_count >= MAX_EPOLL_EVENTS)
 				{
@@ -105,6 +105,7 @@ int handle_epoll(server_socket_t *server_socket)
 					free(client);
 					continue;
 				}
+				printf("Client connected with fd: %d\n", client_fd);
 				client->fd = client_fd;
 				client->index = clients_count;
 				clients[clients_count++] = client;
@@ -116,10 +117,12 @@ int handle_epoll(server_socket_t *server_socket)
 				ssize_t n = read(client->fd, buf, sizeof(buf));
 				if (n <= 0)
 				{
+					// Error on read
 					if (n < 0)
 					{
 						fprintf(stderr, "Error reading from client: %s\n", strerror(errno));
 					}
+					// Client disconnected
 					remove_epoll_event(server_socket, client->fd);
 					close(client->fd);
 					shift_clients(clients, &clients_count, client->index);

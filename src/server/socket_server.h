@@ -1,11 +1,10 @@
-#ifndef EPOLL_H
-#define EPOLL_H
+#ifndef SOCKET_SERVER_H
+#define SOCKET_SERVER_H
 
 #include <sys/epoll.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "epoll.h"
 
 #define MAX_EPOLL_EVENTS 10
 
