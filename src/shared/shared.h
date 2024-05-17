@@ -6,5 +6,6 @@
 
 char **split_space(const char *to_split);
 size_t ft_intlen(long n);
+int ft_stris(char *s, int (*f)(int));
 
 #endif

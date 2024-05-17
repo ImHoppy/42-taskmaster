@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 const cJSON *get_value(const cJSON *const object, const char *const key, bool optional, int target_type, const char *const type_msg)
 {
@@ -58,6 +59,11 @@ status_t parse_config(const cJSON *const json_config, process_t *processes)
 			return FAILURE;
 		if (!assign_non_empty_string(&processes[i].config.name, name))
 			return FAILURE;
+		if (!ft_stris(processes[i].config.name, isalpha))
+		{
+			fprintf(stderr, "Error: process name \"%s\" must contain only alphabetic characters\n", processes[i].config.name);
+			return FAILURE;
+		}
 		if ((processes[i].config.cmd = split_space(cmd->valuestring)) == NULL)
 			return FAILURE;
 		if (!assign_non_zero_uint32(&processes[i].config.numprocs, numprocs))
