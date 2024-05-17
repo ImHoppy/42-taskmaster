@@ -2,6 +2,7 @@
 #include <readline/history.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "input/readline.h"
 #include "taskmasterctl.h"
@@ -36,6 +37,24 @@ int main(int ac, char **av)
 		{
 			add_history(s);
 			execute_line(s);
+			if (write(sfd, s, strlen(s)) < 0)
+			{
+				fprintf(stderr, "Failed to send command to the server\n");
+				break;
+			}
+			while (1)
+			{
+				char s[1024];
+				int n = read(sfd, s, 1024);
+				if (n < 0)
+				{
+					fprintf(stderr, "Failed to read response from the server\n");
+					break;
+				}
+				if (n == 0)
+					break;
+				write(1, s, n);
+			}
 		}
 
 		free(line);

@@ -67,7 +67,7 @@ int main(int ac, char **av)
 
 	while (1)
 	{
-		if (handle_epoll(&server_socket) < 0)
+		if (handle_epoll(&taskmaster, &server_socket) < 0)
 			break;
 		// Handle each process
 		handler(&taskmaster);
