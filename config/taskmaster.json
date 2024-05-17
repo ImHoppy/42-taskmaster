@@ -9,12 +9,6 @@
 	},
 	{
 		"name": "nginx",
-		"cmd": "/bin/nginx",
-		"numprocs": 2,
-		"test": ""
-	},
-	{
-		"name": "nginx",
 		"cmd": "/usr/local/bin/nginx -c /etc/nginx/test.conf",
 		"numprocs": 1,
 		"umask": "022",

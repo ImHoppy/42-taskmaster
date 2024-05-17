@@ -45,6 +45,7 @@ int main(int ac, char **av)
 	if (ret == FAILURE)
 	{
 		fprintf(stderr, "Error: init_config failed\n");
+		free_taskmaster(&taskmaster);
 		return 1;
 	}
 
