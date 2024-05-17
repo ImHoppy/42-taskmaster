@@ -166,6 +166,19 @@ static void child_default_values(process_child_t *child)
 	child->state = STOPPED;
 }
 
+static status_t child_assign_name(process_config_t *config, process_child_t *child, int child_index)
+{
+	int numprocs_len = ft_intlen(config->numprocs);
+	int name_len = strlen(config->name) + (numprocs_len < 2 ? 2 : numprocs_len) + 2;
+	child->name = calloc(sizeof(char), name_len);
+	if (child->name == NULL)
+	{
+		return FAILURE;
+	}
+	snprintf(child->name, name_len, "%s_%02d", config->name, child_index);
+	return SUCCESS;
+}
+
 status_t init_config(const char *const config, taskmaster_t *taskmaster)
 {
 	taskmaster->json_config = cJSON_Parse(config);
@@ -215,7 +228,15 @@ status_t init_config(const char *const config, taskmaster_t *taskmaster)
 			return FAILURE;
 		}
 		for (uint32_t child_index = 0; child_index < process->config.numprocs; child_index++)
+		{
 			child_default_values(&(process->children[child_index]));
+			if (child_assign_name(&(process->config), &(process->children[child_index]), child_index) == FAILURE)
+			{
+				cJSON_Delete(taskmaster->json_config);
+				free_processes(taskmaster->processes, taskmaster->processes_len);
+				return FAILURE;
+			}
+		}
 	}
 
 	print_config(taskmaster->processes, taskmaster->processes_len);

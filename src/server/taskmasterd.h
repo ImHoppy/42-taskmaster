@@ -75,6 +75,7 @@ typedef struct
 	uint32_t retries_number;
 	pid_t pid;
 	clock_t backoff_time;
+	char *name;
 } process_child_t;
 
 typedef struct
