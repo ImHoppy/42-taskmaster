@@ -24,6 +24,71 @@ status_t child_creation(taskmaster_t *taskmaster, process_t *process, uint32_t c
 	return SUCCESS;
 }
 
+void backoff_handling(process_child_t *child, process_t *current_process)
+{
+	if (child->retries_number < current_process->config.startretries)
+	{
+		if (child->backoff_time == 0)
+		{
+			child->backoff_time = clock();
+		}
+		else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
+		{
+			printf("BACKOFF\n");
+			child->state = STARTING;
+			child->backoff_time = 0;
+		}
+	}
+	else
+	{
+		child->state = FATAL;
+		child->backoff_time = 0;
+	}
+}
+
+void starting_handling(process_child_t *child, process_t *current_process)
+{
+	uint32_t start_spent_time =
+		(clock() - child->starting_time) / CLOCKS_PER_SEC;
+
+	if (start_spent_time == current_process->config.starttime)
+	{
+		child->state = RUNNING;
+	}
+	else if (current_process->config.starttime == 0)
+	{
+		child->state = RUNNING;
+	}
+}
+
+status_t auto_start_handling(taskmaster_t *taskmaster, process_child_t *child, process_t *current_process, uint32_t child_index)
+{
+	if (child_creation(taskmaster, current_process, child_index) == FAILURE)
+		return FAILURE;
+	child->state = STARTING;
+	child->starting_time = clock();
+	printf("Child is starting\n");
+
+	return SUCCESS;
+}
+
+void exit_handling(int status, process_child_t *child)
+{
+	if (WIFSIGNALED(status))
+		fprintf(stderr, "Child is terminated because of signal non-intercepted %d\n", WTERMSIG(status));
+	if (WIFEXITED(status))
+	{
+		fprintf(stderr, "Child is terminated with exit code %d and state %d\n",
+				WEXITSTATUS(status), child->state);
+		// When program exit in STARTING state
+		if (child->state == STARTING)
+		{
+			child->state = BACKOFF;
+			child->retries_number++;
+		}
+	}
+}
+
 status_t handler(taskmaster_t *taskmaster)
 {
 	int process_number = cJSON_GetArraySize(taskmaster->json_config);
@@ -36,50 +101,16 @@ status_t handler(taskmaster_t *taskmaster)
 		{
 			process_child_t *child = &(current_process->children[child_index]);
 
-			if ((child->state == STOPPED ||
-				 child->state == EXITED) &&
+			if ((child->state == STOPPED || child->state == EXITED) &&
 				current_process->config.autostart == true)
 			{
-				if (child_creation(taskmaster, current_process, child_index) == FAILURE)
+				if (auto_start_handling(taskmaster, child, current_process, child_index) == FAILURE)
 					return FAILURE;
-				child->state = STARTING;
-				child->starting_time = clock();
 			}
 			else if (child->state == STARTING)
-			{
-				uint32_t start_spent_time =
-					(clock() - child->starting_time) / CLOCKS_PER_SEC;
-
-				if (start_spent_time == current_process->config.starttime)
-				{
-					child->state = RUNNING;
-				}
-				else if (current_process->config.starttime == 0)
-				{
-					child->state = RUNNING;
-				}
-			}
+				starting_handling(child, current_process);
 			else if (child->state == BACKOFF)
-			{
-				if (child->retries_number < current_process->config.startretries)
-				{
-					if (child->backoff_time == 0)
-					{
-						child->backoff_time = clock();
-					}
-					else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
-					{
-						printf("BACKOFF\n");
-						child->state = STARTING;
-						child->backoff_time = 0;
-					}
-				}
-				else
-				{
-					child->state = FATAL;
-					child->backoff_time = 0;
-				}
-			}
+				backoff_handling(child, current_process);
 
 			status = 0;
 			if (child->pid == 0)
@@ -89,26 +120,12 @@ status_t handler(taskmaster_t *taskmaster)
 			int ret = waitpid(child->pid, &status, WNOHANG);
 			if (ret == -1)
 			{
-				fprintf(stderr, "Error when waitpid %d\n", child->pid);
+				fprintf(stderr, "Waitpid error %d\n", child->pid);
+				return FAILURE;
 			}
 			else if (ret > 0)
 			{
-				if (WIFSIGNALED(status))
-					fprintf(
-						stderr,
-						"Child is terminated because of signal non-intercepted %d\n",
-						WTERMSIG(status));
-				if (WIFEXITED(status))
-				{
-					fprintf(stderr, "Child is terminated with exit code %d and state %d\n",
-							WEXITSTATUS(status), child->state);
-					// When program exit in STARTING state
-					if (child->state == STARTING)
-					{
-						child->state = BACKOFF;
-						child->retries_number++;
-					}
-				}
+				exit_handling(status, child);
 				child->pid = 0;
 			}
 		}
