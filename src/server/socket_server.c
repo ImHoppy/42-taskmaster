@@ -70,7 +70,7 @@ int handle_epoll(taskmaster_t *taskmaster, server_socket_t *server_socket)
 
 	struct epoll_event *events = server_socket->events;
 
-	int nfds = epoll_wait(server_socket->epoll_fd, events, MAX_EPOLL_EVENTS, 0);
+	int nfds = epoll_wait(server_socket->epoll_fd, events, MAX_EPOLL_EVENTS, 500); // 500ms timeout
 
 	if (nfds < 0)
 	{
