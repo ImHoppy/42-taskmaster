@@ -9,11 +9,11 @@ void free_paths(char **paths)
 	free(paths);
 }
 
-void free_taskmaster(taskmaster_t *taskmaster)
+void free_taskmaster()
 {
-	free_processes(taskmaster->processes, taskmaster->processes_len);
-	cJSON_Delete(taskmaster->json_config);
-	taskmaster->json_config = NULL;
+	free_processes(g_taskmaster.processes, g_taskmaster.processes_len);
+	cJSON_Delete(g_taskmaster.json_config);
+	g_taskmaster.json_config = NULL;
 }
 
 void free_processes(process_t *const processes, int processes_len)

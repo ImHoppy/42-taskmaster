@@ -106,12 +106,14 @@ signal_list[] = {
 	{"USR2", 12},
 };
 
+extern taskmaster_t g_taskmaster;
+
 static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
 
 //
 // Parsing
 //
-status_t init_config(const char *const config, taskmaster_t *taskmaster);
+status_t init_config(const char *const config);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
 bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);
 bool assign_non_empty_string(const char **variable, const cJSON *const value);
@@ -123,11 +125,11 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
 bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 
-status_t handler(taskmaster_t *taskmaster);
+status_t handler();
 char *get_absolute_cmd_path(char *cmd);
 
 void free_processes(process_t *const processes, int processes_len);
-void free_taskmaster(taskmaster_t *taskmaster);
+void free_taskmaster();
 void free_paths(char **paths);
 
 #endif

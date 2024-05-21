@@ -8,12 +8,12 @@
 #include <errno.h>
 #include "headers/libunixsocket.h"
 
-taskmaster_t taskmaster = {0};
+taskmaster_t g_taskmaster = {0};
 
 void handle_sigint()
 {
 	printf("Signal handling !\n");
-	free_taskmaster(&taskmaster);
+	free_taskmaster();
 	exit(0);
 }
 
@@ -47,7 +47,7 @@ int main(int ac, char **av)
 
 	signal(SIGINT, handle_sigint);
 
-	status_t ret = init_config(config_str, &taskmaster);
+	status_t ret = init_config(config_str);
 	free(config_str);
 	fclose(config);
 	if (ret == FAILURE)
@@ -60,15 +60,15 @@ int main(int ac, char **av)
 	if (ret == FAILURE)
 	{
 		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));
-		free_taskmaster(&taskmaster);
+		free_taskmaster();
 		return 1;
 	}
 
 	while (1)
 	{
 		// Handle each process
-		handler(&taskmaster);
+		handler();
 	}
-	free_taskmaster(&taskmaster);
+	free_taskmaster();
 	return 0;
 }
