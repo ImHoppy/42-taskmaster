@@ -6,6 +6,7 @@
 		"starttime": 2,
 		"umask": "724",
 		"stopsignal": 2,
-		"exitcodes": 255
+		"exitcodes": 255,
+		"autostart": true
 	}
 ]
