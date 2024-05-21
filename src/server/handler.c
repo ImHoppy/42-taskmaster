@@ -17,7 +17,7 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 	else if (pid > 0)
 	{
-		fprintf(stdout, "%d: Child is created %d\n", pid, pid);
+		fprintf(stdout, "%s: Child is created %d\n", process->children[child_index].name, pid);
 		process->children[child_index].pid = pid;
 	}
 
@@ -43,7 +43,7 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 		}
 		else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
 		{
-			fprintf(stdout, "%d: Child is BACKOFF \n", child->pid);
+			fprintf(stdout, "%s: Child is BACKOFF \n", child->name);
 			child->state = STARTING;
 			child->backoff_time = 0;
 		}
@@ -64,13 +64,13 @@ void running_handling(process_child_t *child, process_t *current_process)
 	{
 		child->state = RUNNING;
 		child->retries_number = 0;
-		fprintf(stdout, "%d: Child is running\n", child->pid);
+		fprintf(stdout, "%s: Child is running\n", child->name);
 	}
 	else if (current_process->config.starttime == 0)
 	{
 		child->state = RUNNING;
 		child->retries_number = 0;
-		fprintf(stdout, "%d: Child is running\n", child->pid);
+		fprintf(stdout, "%s: Child is running\n", child->name);
 	}
 }
 
@@ -80,7 +80,7 @@ status_t auto_start_handling(process_child_t *child, process_t *current_process,
 		return FAILURE;
 	child->state = STARTING;
 	child->starting_time = clock();
-	fprintf(stdout, "%d: Child is auto starting\n", child->pid);
+	fprintf(stdout, "%s: Child is auto starting\n", child->name);
 
 	return SUCCESS;
 }
@@ -93,7 +93,7 @@ status_t restart_handling(process_child_t *child, process_t *current_process, ui
 
 	child->state = STARTING;
 	child->starting_time = clock();
-	fprintf(stdout, "%d: Child is restarting\n", child->pid);
+	fprintf(stdout, "%s: Child is restarting\n", child->name);
 
 	return SUCCESS;
 }
@@ -101,11 +101,12 @@ status_t restart_handling(process_child_t *child, process_t *current_process, ui
 status_t exit_handling(int status, process_child_t *child, process_t *current_process, uint32_t child_index)
 {
 	if (WIFSIGNALED(status))
-		fprintf(stderr, "%d: Child is terminated because of signal non-intercepted %d\n", child->pid, WTERMSIG(status));
+		fprintf(stderr, "%s: Child is terminated because of signal non-intercepted %d\n", child->name, WTERMSIG(status));
 	if (WIFEXITED(status))
 	{
-		fprintf(stderr, "%d: Child is terminated with exit code %d and state %d\n",
-				child->pid, WEXITSTATUS(status), child->state);
+		child->pid = 0;
+		fprintf(stderr, "%s: Child is terminated with exit code %d and state %d\n",
+				child->name, WEXITSTATUS(status), child->state);
 		// When program exit in STARTING state
 		if (child->state == STARTING)
 		{
@@ -123,7 +124,7 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 			else
 			{
 				child->state = EXITED;
-				fprintf(stderr, "%d: Child is exited\n", child->pid);
+				fprintf(stderr, "%s: Child is exited\n", child->name);
 			}
 		}
 	}
@@ -161,7 +162,7 @@ status_t handler()
 			int ret = waitpid(child->pid, &status, WNOHANG);
 			if (ret == -1)
 			{
-				fprintf(stderr, "%d: Waitpid error %d\n", child->pid, child->pid);
+				fprintf(stderr, "%s: Waitpid error %d\n", child->name, child->pid);
 				return FAILURE;
 			}
 			else if (ret > 0)
