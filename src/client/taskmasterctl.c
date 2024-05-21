@@ -37,15 +37,15 @@ int main(int ac, char **av)
 		{
 			add_history(s);
 			execute_line(s);
-			if (write(sfd, s, strlen(s)) < 0)
+			if (write(client.sfd, s, strlen(s)) < 0)
 			{
 				fprintf(stderr, "Failed to send command to the server\n");
 				break;
 			}
-			while (1)
+			char s[1025] = {0};
+			int n = 0;
+			while ((n = read(client.sfd, s, 1024)) > 0)
 			{
-				char s[1024];
-				int n = read(sfd, s, 1024);
 				if (n < 0)
 				{
 					fprintf(stderr, "Failed to read response from the server\n");
@@ -54,6 +54,8 @@ int main(int ac, char **av)
 				if (n == 0)
 					break;
 				write(1, s, n);
+				if (n < 1024)
+					break;
 			}
 		}
 
