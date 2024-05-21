@@ -3,10 +3,10 @@
 		"name": "wait",
 		"cmd": "tests/wait 3",
 		"numprocs": 1,
-		"starttime": 2,
+		"starttime": 1,
 		"umask": "724",
 		"stopsignal": 2,
 		"exitcodes": 255,
-		"autostart": true
+		"autorestart": true
 	}
 ]
