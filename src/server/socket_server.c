@@ -84,16 +84,17 @@ int handle_epoll(server_socket_t *server_socket)
 		{
 			fprintf(stderr, "Error in epoll event\n");
 			remove_epoll_event(server_socket, events[i].data.fd);
-			close(events[i].data.fd);
 			if (events[i].data.ptr != NULL)
 			{
 				client_data_t *client = events[i].data.ptr;
+				close(client->fd);
 				shift_clients(clients, &clients_count, client->index);
 				free(client);
+				events[i].data.ptr = NULL;
 			}
 			else
 			{
-				// socket has error
+				// socket server has error
 				return -1;
 			}
 		}
@@ -140,6 +141,7 @@ int handle_epoll(server_socket_t *server_socket)
 						fprintf(stderr, "Error reading from client: %s\n", strerror(errno));
 					}
 					// Client disconnected
+					printf("Client disconnected with fd: %d\n", client->fd);
 					remove_epoll_event(server_socket, client->fd);
 					close(client->fd);
 					shift_clients(clients, &clients_count, client->index);
