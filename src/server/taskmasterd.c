@@ -8,6 +8,15 @@
 #include <errno.h>
 #include "headers/libunixsocket.h"
 
+taskmaster_t taskmaster = {0};
+
+void handle_sigint()
+{
+	printf("Signal handling !\n");
+	free_taskmaster(&taskmaster);
+	exit(0);
+}
+
 int main(int ac, char **av)
 {
 	if (ac < 2 && av[1] == NULL)
@@ -36,7 +45,8 @@ int main(int ac, char **av)
 	}
 	fread(config_str, sizeof(char), size_file, config);
 
-	taskmaster_t taskmaster = {0};
+	signal(SIGINT, handle_sigint);
+
 	status_t ret = init_config(config_str, &taskmaster);
 	free(config_str);
 	fclose(config);
@@ -53,7 +63,6 @@ int main(int ac, char **av)
 		free_taskmaster(&taskmaster);
 		return 1;
 	}
-
 
 	while (1)
 	{
