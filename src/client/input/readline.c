@@ -13,6 +13,7 @@
 #include <readline/chardefs.h>
 
 #include "readline.h"
+#include "taskmasterctl.h"
 
 /* Execute a command line. */
 int execute_line(char *line)
@@ -169,6 +170,9 @@ char *programs_generator(const char *text, int state)
 		list_index = 0;
 		len = strlen(text);
 	}
+
+	dprintf(g_client.sfd, "list");
+	read_socket(true);
 
 	/* Return the next name which partially matches from the programs list. */
 	while ((name = programs[list_index].name))

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "readline.h"
+#include "taskmasterctl.h"
 
 /* When non-zero, this global means the user is done using this program. */
 extern int done;
@@ -59,7 +60,7 @@ int com_list(char *arg)
 int com_quit(char *arg)
 {
 	(void)arg;
-	done = 1;
+	g_client.fatal_error = 1;
 	return (0);
 }
 

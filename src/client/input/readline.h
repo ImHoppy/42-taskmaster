@@ -44,10 +44,10 @@ typedef struct
 {
 	char *name;
 	int status;
-} Program;
+} program_t;
 
 /* On the real project, this should be a list of programs that are currently running. */
-static const Program programs[] = {
+static const program_t programs[] = {
 	{"test", 0},
 	{"nginx", 0},
 	{"node", 0},
