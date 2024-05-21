@@ -46,24 +46,24 @@ static void shift_clients(client_data_t *clients[], int *clients_count, int inde
 	(*clients_count)--;
 }
 
-static status_t parse_message(taskmaster_t *taskmaster, client_data_t *client, char *buf)
+static status_t parse_message(client_data_t *client, char *buf)
 {
 	if (strcmp(buf, "list") == 0)
 	{
-		for (int i = 0; i < taskmaster->processes_len; i++)
+		for (int i = 0; i < g_taskmaster.processes_len; i++)
 		{
-			process_t *process = &taskmaster->processes[i];
+			process_t *process = &g_taskmaster.processes[i];
 			for (uint32_t j = 0; j < process->config.numprocs; j++)
 			{
 				dprintf(client->fd, "%s-%d\n", process->children[j].name, process->children[j].state);
 			}
-			write(client->fd, "\0", 1);
 		}
 	}
+	write(client->fd, "\n", 1);
 	return SUCCESS;
 }
 
-int handle_epoll(taskmaster_t *taskmaster, server_socket_t *server_socket)
+int handle_epoll(server_socket_t *server_socket)
 {
 	static client_data_t *clients[MAX_EPOLL_EVENTS] = {0};
 	static int clients_count = 0;
@@ -148,7 +148,7 @@ int handle_epoll(taskmaster_t *taskmaster, server_socket_t *server_socket)
 				else
 				{
 					fprintf(stdout, "Received: %s\n", buf);
-					parse_message(taskmaster, client, buf);
+					parse_message(client, buf);
 				}
 			}
 		}

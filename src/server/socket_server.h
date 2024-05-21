@@ -26,6 +26,6 @@ typedef struct
 
 int init_epoll(server_socket_t *server_socket);
 int add_epoll_event(server_socket_t *server_socket, int fd, uint32_t events, void *data);
-int handle_epoll(taskmaster_t *taskmaster, server_socket_t *server_socket);
+int handle_epoll(server_socket_t *server_socket);
 
 #endif

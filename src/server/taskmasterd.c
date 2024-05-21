@@ -10,6 +10,15 @@
 #include <sys/epoll.h>
 #include "socket_server.h"
 
+taskmaster_t g_taskmaster = {0};
+
+void handle_sigint()
+{
+	printf("Signal handling !\n");
+	free_taskmaster();
+	exit(0);
+}
+
 int main(int ac, char **av)
 {
 	if (ac < 2 && av[1] == NULL)
@@ -38,14 +47,15 @@ int main(int ac, char **av)
 	}
 	fread(config_str, sizeof(char), size_file, config);
 
-	taskmaster_t taskmaster = {0};
-	status_t ret = init_config(config_str, &taskmaster);
+	signal(SIGINT, handle_sigint);
+
+	status_t ret = init_config(config_str);
 	free(config_str);
 	fclose(config);
 	if (ret == FAILURE)
 	{
 		fprintf(stderr, "Error: init_config failed\n");
-		free_taskmaster(&taskmaster);
+		free_taskmaster();
 		return 1;
 	}
 
@@ -54,25 +64,26 @@ int main(int ac, char **av)
 	if (server_socket.sfd == FAILURE)
 	{
 		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));
-		free_taskmaster(&taskmaster);
+		free_taskmaster();
 		return 1;
 	}
 
 	if (init_epoll(&server_socket) < 0)
 	{
 		fprintf(stderr, "Error creating epoll instance: %s\n", strerror(errno));
-		free_taskmaster(&taskmaster);
+		free_taskmaster();
 		return 1;
 	}
 
 	while (1)
 	{
-		if (handle_epoll(&taskmaster, &server_socket) < 0)
+		if (handle_epoll(&server_socket) < 0)
 			break;
 		// Handle each process
-		handler(&taskmaster);
+		handler();
 	}
-	free_taskmaster(&taskmaster);
+	free_taskmaster();
 	close(server_socket.epoll_fd);
+
 	return 0;
 }
