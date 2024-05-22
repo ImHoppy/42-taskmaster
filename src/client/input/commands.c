@@ -1,9 +1,11 @@
 
 #include <stdio.h>
+#include <unistd.h>
 #include <assert.h>
 #include <string.h>
 
 #include "readline.h"
+#include "shared.h"
 #include "taskmasterctl.h"
 
 /* When non-zero, this global means the user is done using this program. */
@@ -48,11 +50,57 @@ int com_status(char *arg)
 	return 0;
 }
 
+void request_list(void)
+{
+	const char *s = "list";
+	if (write(g_client.sfd, s, strlen(s)) < 0)
+	{
+		g_client.fatal_error = true;
+		fprintf(stderr, "Failed to send command to the server\n");
+		return;
+	}
+	read_socket(false);
+
+	size_t total_programs = 0;
+	for (int i = 0; g_client.buffer[i] && i < g_client.buffer_len; i++)
+	{
+		if (g_client.buffer[i] == '\n')
+			total_programs++;
+	}
+	if (g_client.programs_len < total_programs)
+	{
+		g_client.programs = realloc(g_client.programs, (total_programs + 1) * sizeof(program_t));
+		assert(g_client.programs && "Failed to allocate memory for programs");
+		g_client.programs_len = total_programs;
+	}
+	bzero(g_client.programs, total_programs * sizeof(program_t));
+
+	char *line = strtok(g_client.buffer, "\n");
+	int i = 0;
+	while (line)
+	{
+		char *saveptr;
+		char *name = strtok_r(line, " ", &saveptr);
+		char *status = strtok_r(NULL, " ", &saveptr);
+		if (name && status)
+		{
+			g_client.programs[i].name = strdup(name);
+			g_client.programs[i].status = atoi(status);
+			i++;
+		}
+		line = strtok(NULL, "\n");
+	}
+}
+
 /* List programs in taskmaster configuration. */
 int com_list(char *arg)
 {
 	(void)arg;
-	assert("Not implemented yet");
+	request_list();
+	for (size_t i = 0; i < g_client.programs_len; i++)
+	{
+		printf("%s\t- %s\n", g_client.programs[i].name, state_to_string(g_client.programs[i].status));
+	}
 	return 0;
 }
 

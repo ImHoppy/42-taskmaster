@@ -55,11 +55,10 @@ static status_t parse_message(client_data_t *client, char *buf)
 			process_t *process = &g_taskmaster.processes[i];
 			for (uint32_t j = 0; j < process->config.numprocs; j++)
 			{
-				dprintf(client->fd, "%s-%d\n", process->children[j].name, process->children[j].state);
+				dprintf(client->fd, "%s %d\n", process->children[j].name, process->children[j].state);
 			}
 		}
 	}
-	write(client->fd, "\n", 1);
 	return SUCCESS;
 }
 

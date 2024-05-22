@@ -123,7 +123,11 @@ char **tm_completion(const char *text, int start, int end)
 	if (start == 0)
 		matches = rl_completion_matches(text, command_generator);
 	if (start > 0)
+	{
+		request_list();
+		// find autocompletion
 		matches = rl_completion_matches(text, programs_generator);
+	}
 	return (matches);
 }
 
@@ -159,7 +163,7 @@ char *command_generator(const char *text, int state)
 
 char *programs_generator(const char *text, int state)
 {
-	static int list_index, len;
+	static size_t list_index, len;
 	char *name;
 
 	/* If this is a new word to complete, initialize now.  This includes
@@ -171,14 +175,14 @@ char *programs_generator(const char *text, int state)
 		len = strlen(text);
 	}
 
-	dprintf(g_client.sfd, "list");
-	read_socket(true);
+	if (g_client.programs_len == 0 || g_client.programs == NULL)
+		return ((char *)NULL);
 
 	/* Return the next name which partially matches from the programs list. */
-	while ((name = programs[list_index].name))
+	while (list_index < g_client.programs_len)
 	{
+		name = g_client.programs[list_index].name;
 		list_index++;
-
 		if (strncmp(name, text, len) == 0)
 			return (strdup(name));
 	}

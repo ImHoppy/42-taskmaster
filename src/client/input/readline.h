@@ -17,6 +17,8 @@ const COMMAND *find_command(char *name);
 void initialize_readline(void);
 int execute_line(char *line);
 
+void request_list(void);
+
 /* The names of functions that actually do the manipulation. */
 int com_list(char *);
 int com_start(char *);

@@ -84,12 +84,6 @@ int main(int ac, char **av)
 		{
 			add_history(s);
 			execute_line(s);
-			if (write(g_client.sfd, s, strlen(s)) < 0)
-			{
-				fprintf(stderr, "Failed to send command to the server\n");
-				break;
-			}
-			read_socket(true);
 		}
 
 		free(line);

@@ -26,18 +26,6 @@ typedef struct
 	const char *value;
 } env_t;
 
-typedef enum
-{
-	STOPPED,
-	STARTING,
-	RUNNING,
-	BACKOFF,
-	STOPPING,
-	EXITED,
-	FATAL,
-	UNKNOWN,
-} process_state_t;
-
 typedef enum autorestart_t
 {
 	NEVER = 0,
