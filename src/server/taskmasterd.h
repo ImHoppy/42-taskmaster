@@ -59,10 +59,10 @@ typedef struct
 typedef struct
 {
 	process_state_t state;
-	clock_t starting_time;
+	time_t starting_time;
 	uint32_t retries_number;
 	pid_t pid;
-	clock_t backoff_time;
+	time_t backoff_time;
 	char *name;
 } process_child_t;
 

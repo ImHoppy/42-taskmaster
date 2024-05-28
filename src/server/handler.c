@@ -39,9 +39,9 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 	{
 		if (child->backoff_time == 0)
 		{
-			child->backoff_time = clock();
+			child->backoff_time = time(NULL);
 		}
-		else if ((clock() - child->backoff_time) / CLOCKS_PER_SEC >= 5)
+		else if ((time(NULL) - child->backoff_time) >= 5)
 		{
 			fprintf(stdout, "%s: Child is BACKOFF \n", child->name);
 			child->state = STARTING;
@@ -58,7 +58,7 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 void running_handling(process_child_t *child, process_t *current_process)
 {
 	uint32_t start_spent_time =
-		(clock() - child->starting_time) / CLOCKS_PER_SEC;
+		(time(NULL) - child->starting_time);
 
 	if (start_spent_time == current_process->config.starttime)
 	{
@@ -79,7 +79,7 @@ status_t auto_start_handling(process_child_t *child, process_t *current_process,
 	if (child_creation(current_process, child_index) == FAILURE)
 		return FAILURE;
 	child->state = STARTING;
-	child->starting_time = clock();
+	child->starting_time = time(NULL);
 	fprintf(stdout, "%s: Child is auto starting\n", child->name);
 
 	return SUCCESS;
@@ -92,7 +92,7 @@ status_t restart_handling(process_child_t *child, process_t *current_process, ui
 		return FAILURE;
 
 	child->state = STARTING;
-	child->starting_time = clock();
+	child->starting_time = time(NULL);
 	fprintf(stdout, "%s: Child is restarting\n", child->name);
 
 	return SUCCESS;
