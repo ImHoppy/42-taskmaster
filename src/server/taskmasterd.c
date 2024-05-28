@@ -15,8 +15,7 @@ taskmaster_t g_taskmaster = {0};
 void handle_sigint()
 {
 	printf("Signal handling !\n");
-	free_taskmaster();
-	exit(0);
+	g_taskmaster.running = false;
 }
 
 int main(int ac, char **av)
@@ -74,8 +73,8 @@ int main(int ac, char **av)
 		free_taskmaster();
 		return 1;
 	}
-
-	while (1)
+	g_taskmaster.running = true;
+	while (g_taskmaster.running)
 	{
 		if (handle_epoll(&server_socket) < 0)
 			break;
@@ -84,6 +83,7 @@ int main(int ac, char **av)
 	}
 	free_taskmaster();
 	close(server_socket.epoll_fd);
+	close(server_socket.sfd);
 
 	return 0;
 }

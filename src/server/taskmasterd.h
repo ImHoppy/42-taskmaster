@@ -77,6 +77,7 @@ typedef struct
 	cJSON *json_config;
 	process_t *processes;
 	int processes_len;
+	bool running;
 } taskmaster_t;
 
 static const struct
