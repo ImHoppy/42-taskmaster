@@ -89,6 +89,7 @@ int main(int ac, char **av)
 		free(line);
 	}
 	printf("Have a nice day!\n");
+	close(g_client.sfd);
 	free(g_client.buffer);
 	rl_clear_history();
 	exit(0);

@@ -32,7 +32,7 @@ int com_start(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
-	if (process_child->state != STOPPED)
+	if (process_child->state != STOPPED && process_child->state != EXITED && process_child->state != FATAL)
 	{
 		dprintf(client->fd, "Program %s is already running\n", program_name);
 		return 1;
@@ -49,6 +49,14 @@ int com_restart(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
+	if (process_child->state != RUNNING)
+	{
+		dprintf(client->fd, "Program %s is not running\n", program_name);
+		return 1;
+	}
+	process_child->state = STOPPING;
+	// TODO: Need to specify the child to restart
+
 	return 0;
 }
 
@@ -60,6 +68,12 @@ int com_stop(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
+	if (process_child->state != RUNNING)
+	{
+		dprintf(client->fd, "Program %s is not running\n", program_name);
+		return 1;
+	}
+	process_child->state = STOPPING;
 	return 0;
 }
 

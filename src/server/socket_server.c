@@ -65,6 +65,10 @@ static status_t parse_message(client_data_t *client, char *buf)
 		if (strcmp(commands[i].name, cmd) == 0)
 		{
 			char *arg = strtok(NULL, " ");
+			if (arg && arg[strlen(arg) - 1] == '\n')
+				arg[strlen(arg) - 1] = '\0';
+			if (arg == NULL)
+				arg = "";
 			if (commands[i].func(client, arg) < 0)
 			{
 				fprintf(stderr, "Error executing command: %s\n", strerror(errno));
