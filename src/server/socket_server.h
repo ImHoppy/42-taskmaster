@@ -27,4 +27,17 @@ int init_epoll(server_socket_t *server_socket);
 int add_epoll_event(server_socket_t *server_socket, int fd, uint32_t events, void *data);
 int handle_epoll(server_socket_t *server_socket);
 
+typedef int (*CMDFunction)(client_data_t *, char *);
+typedef struct
+{
+	char *name;
+	CMDFunction func;
+} COMMAND;
+// Commands
+int com_start(client_data_t *client, char *program_name);
+int com_restart(client_data_t *client, char *program_name);
+int com_stop(client_data_t *client, char *program_name);
+int com_status(client_data_t *client, char *program_name);
+int com_list(client_data_t *client, char *program_name);
+
 #endif

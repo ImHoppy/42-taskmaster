@@ -48,15 +48,29 @@ static void shift_clients(client_data_t *clients[], int *clients_count, int inde
 
 static status_t parse_message(client_data_t *client, char *buf)
 {
-	if (strcmp(buf, "list") == 0)
+	char *cmd = strtok(buf, " ");
+	if (cmd == NULL)
+		return FAILURE;
+	static const COMMAND commands[] = {
+		{"start", com_start},
+		{"restart", com_restart},
+		{"stop", com_stop},
+		{"status", com_status},
+		{"list", com_list},
+		{NULL, NULL},
+	};
+
+	for (int i = 0; commands[i].name != NULL; i++)
 	{
-		for (int i = 0; i < g_taskmaster.processes_len; i++)
+		if (strcmp(commands[i].name, cmd) == 0)
 		{
-			process_t *process = &g_taskmaster.processes[i];
-			for (uint32_t j = 0; j < process->config.numprocs; j++)
+			char *arg = strtok(NULL, " ");
+			if (commands[i].func(client, arg) < 0)
 			{
-				dprintf(client->fd, "%s %d\n", process->children[j].name, process->children[j].state);
+				fprintf(stderr, "Error executing command: %s\n", strerror(errno));
+				return FAILURE;
 			}
+			return SUCCESS;
 		}
 	}
 	return SUCCESS;

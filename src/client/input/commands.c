@@ -18,7 +18,9 @@ int com_start(char *arg)
 	if (!valid_argument("start", arg))
 		return 1;
 
-	assert("Not implemented yet");
+	dprintf(g_client.sfd, "start %s\n", arg);
+	read_socket(false);
+	printf("%s\n", g_client.buffer);
 	return 0;
 }
 
@@ -27,7 +29,9 @@ int com_restart(char *arg)
 	if (!valid_argument("restart", arg))
 		return 1;
 
-	assert("Not implemented yet");
+	dprintf(g_client.sfd, "restart %s\n", arg);
+	read_socket(false);
+	printf("%s\n", g_client.buffer);
 	return 0;
 }
 
@@ -36,7 +40,9 @@ int com_stop(char *arg)
 	if (!valid_argument("stop", arg))
 		return 1;
 
-	assert("Not implemented yet");
+	dprintf(g_client.sfd, "stop %s\n", arg);
+	read_socket(false);
+	printf("%s\n", g_client.buffer);
 	return 0;
 }
 
@@ -46,7 +52,9 @@ int com_status(char *arg)
 	if (!valid_argument("status", arg))
 		return 1;
 
-	assert("Not implemented yet");
+	dprintf(g_client.sfd, "status %s\n", arg);
+	read_socket(false);
+	printf("%s\n", g_client.buffer);
 	return 0;
 }
 
