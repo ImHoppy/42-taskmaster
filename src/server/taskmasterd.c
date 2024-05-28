@@ -59,7 +59,7 @@ int main(int ac, char **av)
 	}
 
 	server_socket_t server_socket = {0};
-	server_socket.sfd = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, 0);
+	server_socket.sfd = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, SOCK_CLOEXEC);
 	if (server_socket.sfd == FAILURE)
 	{
 		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));

@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "taskmasterd.h"
 
 #define MAX_EPOLL_EVENTS 10
 
