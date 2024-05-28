@@ -105,8 +105,8 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 	if (WIFEXITED(status))
 	{
 		child->pid = 0;
-		fprintf(stderr, "%s: Child is terminated with exit code %d and state %d\n",
-				child->name, WEXITSTATUS(status), child->state);
+		fprintf(stderr, "%s: Child is terminated with exit code %d and state %s\n",
+				child->name, WEXITSTATUS(status), state_to_string(child->state));
 		// When program exit in STARTING state
 		if (child->state == STARTING)
 		{
