@@ -1,6 +1,7 @@
 #include "shared.h"
 
 static const char *states[] = {
+	"NON_STARTED",
 	"STOPPED",
 	"STARTING",
 	"RUNNING",

@@ -74,18 +74,7 @@ void running_handling(process_child_t *child, process_t *current_process)
 	}
 }
 
-status_t auto_start_handling(process_child_t *child, process_t *current_process, uint32_t child_index)
-{
-	if (child_creation(current_process, child_index) == FAILURE)
-		return FAILURE;
-	child->state = STARTING;
-	child->starting_time = time(NULL);
-	fprintf(stdout, "%s: Child is auto starting\n", child->name);
-
-	return SUCCESS;
-}
-
-status_t restart_handling(process_child_t *child, process_t *current_process, uint32_t child_index)
+status_t start_handling(process_child_t *child, process_t *current_process, uint32_t child_index)
 {
 	murder_child(child);
 	if (child_creation(current_process, child_index) == FAILURE)
@@ -101,7 +90,12 @@ status_t restart_handling(process_child_t *child, process_t *current_process, ui
 status_t exit_handling(int status, process_child_t *child, process_t *current_process, uint32_t child_index)
 {
 	if (WIFSIGNALED(status))
+	{
+		child->pid = 0;
+		if (child->state == STOPPING)
+			child->state = STOPPED;
 		fprintf(stderr, "%s: Child is terminated because of signal non-intercepted %d\n", child->name, WTERMSIG(status));
+	}
 	if (WIFEXITED(status))
 	{
 		child->pid = 0;
@@ -114,11 +108,11 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 			child->retries_number++;
 		}
 		// When program exit but have autorestart enabled
-		else
+		else if (child->state == RUNNING)
 		{
 			if (current_process->config.autorestart == true)
 			{
-				if (restart_handling(child, current_process, child_index) == FAILURE)
+				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
 			}
 			else
@@ -146,7 +140,7 @@ status_t handler()
 			if ((child->state == STOPPED || child->state == EXITED) &&
 				current_process->config.autostart == true)
 			{
-				if (auto_start_handling(child, current_process, child_index) == FAILURE)
+				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
 			}
 			else if (child->state == STARTING)

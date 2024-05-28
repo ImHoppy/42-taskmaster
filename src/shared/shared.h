@@ -6,6 +6,7 @@
 
 typedef enum
 {
+	NON_STARTED,
 	STOPPED,
 	STARTING,
 	RUNNING,
