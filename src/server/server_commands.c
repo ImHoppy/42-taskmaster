@@ -71,12 +71,13 @@ int com_status(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
-	dprintf(client->fd, "%s %d\n", process_child->name, state_to_string(process_child->state));
+	dprintf(client->fd, "%s %s\n", process_child->name, state_to_string(process_child->state));
 	return 0;
 }
 
 int com_list(client_data_t *client, char *program_name)
 {
+	(void)program_name;
 	for (int i = 0; i < g_taskmaster.processes_len; i++)
 	{
 		process_t *process = &g_taskmaster.processes[i];
