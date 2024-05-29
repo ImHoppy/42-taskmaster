@@ -1,7 +1,7 @@
 [
 	{
 		"name": "wait",
-		"cmd": "tests/wait 3",
+		"cmd": "tests/wait 1",
 		"numprocs": 1,
 		"starttime": 1,
 		"umask": "724",

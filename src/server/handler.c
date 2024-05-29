@@ -12,7 +12,7 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	else if (pid == 0)
 	{
 		execve(process->config.cmd[0], process->config.cmd, process->config.envs);
-		free_taskmaster(g_taskmaster);
+		free_taskmaster();
 		exit(127);
 	}
 	else if (pid > 0)
@@ -87,6 +87,11 @@ status_t start_handling(process_child_t *child, process_t *current_process, uint
 	return SUCCESS;
 }
 
+bool is_exit_code_accepted(int status, bool exitcodes[256])
+{
+	return exitcodes[status];
+}
+
 status_t exit_handling(int status, process_child_t *child, process_t *current_process, uint32_t child_index)
 {
 	if (WIFSIGNALED(status))
@@ -110,17 +115,26 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		// When program exit but have autorestart enabled
 		else if (child->state == RUNNING)
 		{
-			if (current_process->config.autorestart == true)
+			if (current_process->config.autorestart == ALWAYS)
 			{
 				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
 			}
-			else
+			else if (current_process->config.autorestart == UNEXPECTED)
 			{
 				child->state = EXITED;
-				fprintf(stderr, "%s: Child is exited\n", child->name);
+				fprintf(stderr, "%s: Child is exited: %s\n", child->name, state_to_string(child->state));
+				if (!is_exit_code_accepted(WEXITSTATUS(status), current_process->config.exitcodes))
+				{
+					fprintf(stderr, "%s: Restarting because of exit code is not accepted\n", child->name);
+					if (start_handling(child, current_process, child_index) == FAILURE)
+						return FAILURE;
+				}
 			}
 		}
+
+		if (child->state == STOPPING)
+			child->state = STOPPED;
 	}
 	return SUCCESS;
 }
@@ -137,9 +151,11 @@ status_t handler()
 		{
 			process_child_t *child = &(current_process->children[child_index]);
 
-			if ((child->state == STOPPED || child->state == EXITED) &&
-				current_process->config.autostart == true)
+			if ((child->state == NON_STARTED && current_process->config.autostart) ||
+				(child->state == EXITED &&
+				 current_process->config.autorestart == ALWAYS))
 			{
+				fprintf(stderr, "%s: START %d\n", child->name, child->pid);
 				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
 			}
