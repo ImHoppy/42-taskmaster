@@ -187,7 +187,7 @@ void print_config(const process_t *const processes, int processes_len)
 		printf("\tstarttime: %d\n", processes[i].config.starttime);
 		printf("\tstoptime: %d\n", processes[i].config.stoptime);
 		printf("\tautostart: %s\n", processes[i].config.autostart ? "true" : "false");
-		printf("\tautorestart: %d\n", processes[i].config.autorestart);
+		printf("\tautorestart: %s\n", processes[i].config.autorestart == UNEXPECTED ? "UNEXPECTED" : (processes[i].config.autorestart == ALWAYS ? "ALWAYS" : "NEVER"));
 		printf("\tstdout_logfile: %s\n", processes[i].config.stdout_logfile);
 		printf("\tstderr_logfile: %s\n", processes[i].config.stderr_logfile);
 		printf("\tworkingdir: %s\n", processes[i].config.workingdir);
@@ -197,7 +197,7 @@ void print_config(const process_t *const processes, int processes_len)
 
 static void child_default_values(process_child_t *child)
 {
-	child->state = STOPPED;
+	child->state = NON_STARTED;
 }
 
 static status_t child_assign_name(process_config_t *config, process_child_t *child, int child_index)
