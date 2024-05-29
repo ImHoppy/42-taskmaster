@@ -6,7 +6,7 @@ status_t child_creation(process_t *process, uint32_t child_index)
 
 	if (pid == -1)
 	{
-		fprintf(stderr, "Error occured during the fork.");
+		log_fatal("Error occured during the fork.");
 		return FAILURE;
 	}
 	else if (pid == 0)
@@ -26,7 +26,6 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 	else if (pid > 0)
 	{
-		fprintf(stdout, "%s: Child is created %d\n", process->children[child_index].name, pid);
 		process->children[child_index].pid = pid;
 	}
 
@@ -43,7 +42,7 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 		}
 		else if ((time(NULL) - child->backoff_time) >= 5)
 		{
-			fprintf(stdout, "%s: Child is BACKOFF \n", child->name);
+			log_debug("%s: Retrying to start", child->name);
 			child->state = STARTING;
 			child->backoff_time = 0;
 		}
@@ -60,17 +59,12 @@ void running_handling(process_child_t *child, process_t *current_process)
 	uint32_t start_spent_time =
 		(time(NULL) - child->starting_time);
 
-	if (start_spent_time == current_process->config.starttime)
+	if (start_spent_time == current_process->config.starttime ||
+		current_process->config.starttime == 0)
 	{
 		child->state = RUNNING;
 		child->retries_number = 0;
-		fprintf(stdout, "%s: Child is running\n", child->name);
-	}
-	else if (current_process->config.starttime == 0)
-	{
-		child->state = RUNNING;
-		child->retries_number = 0;
-		fprintf(stdout, "%s: Child is running\n", child->name);
+		log_debug("%s has finish starting in %d seconds", child->name, start_spent_time);
 	}
 }
 
@@ -78,7 +72,7 @@ status_t start_handling(process_child_t *child, process_t *current_process, uint
 {
 	if (child->pid > 0)
 	{
-		fprintf(stderr, "FATAL: start_handling when child already exist\n");
+		log_fatal("start_handling when child already exist");
 		return SUCCESS;
 	}
 	if (child_creation(current_process, child_index) == FAILURE)
@@ -86,7 +80,7 @@ status_t start_handling(process_child_t *child, process_t *current_process, uint
 
 	child->state = STARTING;
 	child->starting_time = time(NULL);
-	fprintf(stdout, "%s: Child is restarting\n", child->name);
+	log_info("Starting %s", child->name);
 
 	return SUCCESS;
 }
@@ -103,13 +97,13 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		child->pid = 0;
 		if (child->state == STOPPING)
 			child->state = STOPPED;
-		fprintf(stderr, "%s: Child is terminated because of signal non-intercepted %d\n", child->name, WTERMSIG(status));
+		log_debug("%s: Child is terminated because of signal non-intercepted %d\n", child->name, WTERMSIG(status));
 	}
 	if (WIFEXITED(status))
 	{
 		child->pid = 0;
-		fprintf(stderr, "%s: Child is terminated with exit code %d and state %s\n",
-				child->name, WEXITSTATUS(status), state_to_string(child->state));
+		log_info("%s: Child is terminated with exit code %d and state %s\n",
+				 child->name, WEXITSTATUS(status), state_to_string(child->state));
 		// When program exit in STARTING state
 		if (child->state == STARTING)
 		{
@@ -127,10 +121,9 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 			else if (current_process->config.autorestart == UNEXPECTED)
 			{
 				child->state = EXITED;
-				fprintf(stderr, "%s: Child is exited: %s\n", child->name, state_to_string(child->state));
 				if (!is_exit_code_accepted(WEXITSTATUS(status), current_process->config.exitcodes))
 				{
-					fprintf(stderr, "%s: Restarting because of exit code is not accepted\n", child->name);
+					log_debug("%s: Restarting because of exit code is not accepted\n", child->name);
 					if (start_handling(child, current_process, child_index) == FAILURE)
 						return FAILURE;
 				}
@@ -139,7 +132,6 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		else if (child->state == STOPPING)
 		{
 			child->state = STOPPED;
-			fprintf(stderr, "Stopped %s\n", current_process->children->name);
 		}
 	}
 	return SUCCESS;
@@ -147,7 +139,7 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 
 status_t handler()
 {
-	int process_number = cJSON_GetArraySize(g_taskmaster.json_config);
+	int process_number = g_taskmaster.processes_len;
 	for (int i = 0; i < process_number; i++)
 	{
 		int status;
@@ -161,9 +153,9 @@ status_t handler()
 				(child->state == EXITED &&
 				 current_process->config.autorestart == ALWAYS))
 			{
-				fprintf(stderr, "%s: START %d\n", child->name, child->pid);
 				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
+				log_debug("New child: %s with pid: %d", child->name, child->pid);
 			}
 			else if (child->state == STARTING)
 				running_handling(child, current_process);
@@ -172,13 +164,12 @@ status_t handler()
 			else if (child->state == STOPPING && (time(NULL) - child->starting_stop) >= current_process->config.stoptime)
 			{
 				child->state = STOPPED;
-				fprintf(stderr, "Stopped %s\n", current_process->children->name);
+				log_info("Hard stopping %s", child->name);
 				if (child->pid != 0)
 					kill(child->pid, SIGKILL);
 			}
 			else if (child->state == STOPPED && child->need_restart && child->pid == 0)
 			{
-
 				child->need_restart = false;
 				if (start_handling(child, current_process, child_index) == FAILURE)
 					return FAILURE;
@@ -192,7 +183,7 @@ status_t handler()
 			int ret = waitpid(child->pid, &status, WNOHANG);
 			if (ret == -1)
 			{
-				fprintf(stderr, "%s: Waitpid error %d\n", child->name, child->pid);
+				log_fatal("%s: Waitpid error with pid: %d", child->name, child->pid);
 				return FAILURE;
 			}
 			else if (ret > 0)

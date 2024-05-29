@@ -14,7 +14,6 @@ taskmaster_t g_taskmaster = {0};
 
 void handle_sigint()
 {
-	printf("Signal handling !\n");
 	g_taskmaster.running = false;
 }
 
@@ -28,7 +27,7 @@ int main(int ac, char **av)
 	FILE *config = fopen(av[1], "r");
 	if (config == NULL)
 	{
-		fprintf(stderr, "Error opening config file\n");
+		log_error("opening config file");
 		return 1;
 	}
 
@@ -40,7 +39,7 @@ int main(int ac, char **av)
 	char *config_str = calloc(sizeof(char), size_file + 1);
 	if (config_str == NULL)
 	{
-		fprintf(stderr, "Error: malloc failed\n");
+		log_error("malloc failed");
 		fclose(config);
 		return 1;
 	}
@@ -53,23 +52,32 @@ int main(int ac, char **av)
 	fclose(config);
 	if (ret == FAILURE)
 	{
-		fprintf(stderr, "Error: init_config failed\n");
+		log_error("init_config failed");
 		free_taskmaster();
 		return 1;
 	}
 
-	server_socket_t server_socket = {0};
-	server_socket.sfd = create_unix_server_socket("/tmp/taskmasterd.sock", LIBSOCKET_STREAM, SOCK_CLOEXEC);
-	if (server_socket.sfd == FAILURE)
+	FILE *log = fopen(g_taskmaster.logfile ? g_taskmaster.logfile : "/tmp/taskmasterd.log", "w");
+	if (log == NULL)
 	{
-		fprintf(stderr, "Error creating unix server socket: %s\n", strerror(errno));
+		log_error("opening log file");
+		free_taskmaster();
+		return 1;
+	}
+	log_add_fp(log, LOG_INFO);
+
+	server_socket_t server_socket = {0};
+	server_socket.sfd = create_unix_server_socket(g_taskmaster.serverfile ? g_taskmaster.serverfile : "/tmp/taskmasterd.sock", LIBSOCKET_STREAM, SOCK_CLOEXEC);
+	if (server_socket.sfd < 0)
+	{
+		log_error("creating unix server socket: %s", strerror(errno));
 		free_taskmaster();
 		return 1;
 	}
 
 	if (init_epoll(&server_socket) < 0)
 	{
-		fprintf(stderr, "Error creating epoll instance: %s\n", strerror(errno));
+		log_error("creating epoll instance: %s", strerror(errno));
 		free_taskmaster();
 		return 1;
 	}
@@ -84,6 +92,6 @@ int main(int ac, char **av)
 	free_taskmaster();
 	close(server_socket.epoll_fd);
 	close(server_socket.sfd);
-
+	fclose(log);
 	return 0;
 }

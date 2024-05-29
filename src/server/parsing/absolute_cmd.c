@@ -1,4 +1,5 @@
 #include "taskmasterd.h"
+#include "log/logging.h"
 
 static uint32_t get_paths_len(char *path)
 {
@@ -24,10 +25,7 @@ static char **split_path_env()
 
 	char **paths = calloc(sizeof(char *), paths_len + 1);
 	if (paths == NULL)
-	{
-		free(path);
 		return NULL;
-	}
 
 	uint32_t i = 0;
 	int pos = 0;
@@ -39,10 +37,7 @@ static char **split_path_env()
 		len = strlen(&(path[pos])) - strlen(tmp);
 		paths[i] = calloc(sizeof(char), len + 1);
 		if (paths[i] == NULL)
-		{
-
 			return NULL;
-		}
 
 		strncpy(paths[i], &(path[pos]), len);
 		pos = pos + len + 1;
@@ -87,5 +82,6 @@ char *get_absolute_cmd_path(char *cmd)
 
 	free(cmd);
 	free_paths(paths);
+	log_error("Error: command not found in PATH");
 	return NULL;
 }

@@ -14,6 +14,7 @@
 #include <signal.h>
 #include "cJSON.h"
 #include "shared.h"
+#include "log/logging.h"
 
 typedef enum
 {
@@ -81,6 +82,9 @@ typedef struct
 	process_t *processes;
 	int processes_len;
 	bool running;
+
+	const char *logfile;
+	const char *serverfile;
 } taskmaster_t;
 
 static const struct

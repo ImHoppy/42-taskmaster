@@ -227,8 +227,22 @@ status_t init_config(const char *const config)
 		return FAILURE;
 	}
 
-	g_taskmaster.processes_len = cJSON_GetArraySize(g_taskmaster.json_config);
-	if (g_taskmaster.processes_len <= 0 || (g_taskmaster.json_config->type & 0xFF) != cJSON_Array)
+	if ((g_taskmaster.json_config->type & 0xFF) != cJSON_Object)
+	{
+		fprintf(stderr, "Error: config must be an objects\n");
+		return FAILURE;
+	}
+
+	get_key_from_json(g_taskmaster.json_config, programs, false, cJSON_Array);
+	get_key_from_json(g_taskmaster.json_config, serverfile, true, cJSON_String);
+	get_key_from_json(g_taskmaster.json_config, logfile, true, cJSON_String);
+	if (!assign_non_empty_string(&g_taskmaster.serverfile, serverfile))
+		return FAILURE;
+	if (!assign_non_empty_string(&g_taskmaster.logfile, logfile))
+		return FAILURE;
+
+	g_taskmaster.processes_len = cJSON_GetArraySize(programs);
+	if ((programs->type & 0xFF) != cJSON_Array || g_taskmaster.processes_len == 0)
 	{
 		fprintf(stderr, "Error: config must be an array of objects\n");
 		return FAILURE;
@@ -239,7 +253,7 @@ status_t init_config(const char *const config)
 		return FAILURE;
 	processes_default_config(g_taskmaster.processes, g_taskmaster.processes_len);
 
-	if (parse_config(g_taskmaster.json_config, g_taskmaster.processes) == FAILURE)
+	if (parse_config(programs, g_taskmaster.processes) == FAILURE)
 		return FAILURE;
 
 	if (check_unique_name() == FAILURE)
