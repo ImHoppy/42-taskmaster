@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <signal.h>
 #include "cJSON.h"
 #include "shared.h"
@@ -64,6 +65,8 @@ typedef struct
 	pid_t pid;
 	time_t backoff_time;
 	char *name;
+	bool need_restart;
+	time_t starting_stop;
 } process_child_t;
 
 typedef struct

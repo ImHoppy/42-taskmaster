@@ -39,7 +39,10 @@ int com_start(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
-	if (process_child->state != STOPPED && process_child->state != EXITED && process_child->state != FATAL)
+	if (process_child->state != STOPPED &&
+		process_child->state != EXITED &&
+		process_child->state != FATAL &&
+		process_child->state != NON_STARTED)
 	{
 		dprintf(client->fd, "Program %s is already running\n", program_name);
 		return 1;
@@ -49,6 +52,16 @@ int com_start(client_data_t *client, char *program_name)
 	// process_child->state = STARTING;
 	dprintf(client->fd, "Starting %s\n", program_name);
 	return 0;
+}
+
+static void murder_child(process_child_t *child, uint8_t stopsignal)
+{
+	if (child->pid > 0)
+	{
+		kill(child->pid, stopsignal);
+		child->state = STOPPING;
+		child->starting_stop = time(NULL);
+	}
 }
 
 int com_restart(client_data_t *client, char *program_name)
@@ -67,8 +80,9 @@ int com_restart(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s is not running\n", program_name);
 		return 1;
 	}
-	if (start_handling(process_child, current_process, child_index) == FAILURE)
-		return 1;
+
+	process_child->need_restart = true;
+	murder_child(process_child, current_process->config.stopsignal);
 	// TODO: Need to specify the child to restart
 	dprintf(client->fd, "Restarting %s\n", program_name);
 	return 0;
@@ -76,7 +90,8 @@ int com_restart(client_data_t *client, char *program_name)
 
 int com_stop(client_data_t *client, char *program_name)
 {
-	process_child_t *process_child = find_process_by_name(program_name, NULL, NULL);
+	process_t *current_process;
+	process_child_t *process_child = find_process_by_name(program_name, &current_process, NULL);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
@@ -87,9 +102,8 @@ int com_stop(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s is not running\n", program_name);
 		return 1;
 	}
-	process_child->state = STOPPING;
 	dprintf(client->fd, "Stopping %s\n", program_name);
-	kill(process_child->pid, SIGKILL);
+	murder_child(process_child, current_process->config.stopsignal);
 	return 0;
 }
 

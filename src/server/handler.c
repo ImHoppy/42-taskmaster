@@ -11,6 +11,15 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 	else if (pid == 0)
 	{
+		if (process->config.workingdir)
+		{
+			if (chdir(process->config.workingdir) < 0)
+			{
+				free_taskmaster();
+				exit(126);
+			}
+		}
+		umask(process->config.umask);
 		execve(process->config.cmd[0], process->config.cmd, process->config.envs);
 		free_taskmaster();
 		exit(127);
@@ -22,15 +31,6 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 
 	return SUCCESS;
-}
-
-static void murder_child(process_child_t *child)
-{
-	if (child->pid > 0)
-	{
-		kill(child->pid, SIGINT);
-		child->pid = 0;
-	}
 }
 
 void backoff_handling(process_child_t *child, process_t *current_process)
@@ -76,7 +76,11 @@ void running_handling(process_child_t *child, process_t *current_process)
 
 status_t start_handling(process_child_t *child, process_t *current_process, uint32_t child_index)
 {
-	murder_child(child);
+	if (child->pid > 0)
+	{
+		fprintf(stderr, "FATAL: start_handling when child already exist\n");
+		return SUCCESS;
+	}
 	if (child_creation(current_process, child_index) == FAILURE)
 		return FAILURE;
 
@@ -132,9 +136,11 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 				}
 			}
 		}
-
-		if (child->state == STOPPING)
+		else if (child->state == STOPPING)
+		{
 			child->state = STOPPED;
+			fprintf(stderr, "Stopped %s\n", current_process->children->name);
+		}
 	}
 	return SUCCESS;
 }
@@ -163,6 +169,20 @@ status_t handler()
 				running_handling(child, current_process);
 			else if (child->state == BACKOFF)
 				backoff_handling(child, current_process);
+			else if (child->state == STOPPING && (time(NULL) - child->starting_stop) >= current_process->config.stoptime)
+			{
+				child->state = STOPPED;
+				fprintf(stderr, "Stopped %s\n", current_process->children->name);
+				if (child->pid != 0)
+					kill(child->pid, SIGKILL);
+			}
+			else if (child->state == STOPPED && child->need_restart && child->pid == 0)
+			{
+
+				child->need_restart = false;
+				if (start_handling(child, current_process, child_index) == FAILURE)
+					return FAILURE;
+			}
 
 			status = 0;
 			if (child->pid == 0)
@@ -182,16 +202,4 @@ status_t handler()
 		}
 	}
 	return SUCCESS;
-}
-
-void murder_my_children()
-{
-	for (int process_index = 0; process_index < g_taskmaster.processes_len; process_index++)
-	{
-		process_t *current_process = &(g_taskmaster.processes[process_index]);
-		for (uint32_t child_index = 0; child_index < current_process->config.numprocs; child_index++)
-		{
-			murder_child(&(current_process->children[child_index]));
-		}
-	}
 }

@@ -1,12 +1,23 @@
 [
 	{
 		"name": "wait",
-		"cmd": "tests/wait 1",
+		"cmd": "tests/wait 10",
 		"numprocs": 1,
 		"starttime": 1,
 		"umask": "724",
 		"stopsignal": 2,
-		"exitcodes": 255,
+		"exitcodes": 0,
+		"autostart": false,
+		"autorestart": true
+	},
+	{
+		"name": "youcantkillme",
+		"cmd": "tests/youcantkillme",
+		"numprocs": 1,
+		"starttime": 1,
+		"stoptime": 2,
+		"umask": "724",
+		"exitcodes": 0,
 		"autorestart": true
 	}
 ]
