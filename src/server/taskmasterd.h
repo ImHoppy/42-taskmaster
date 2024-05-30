@@ -119,6 +119,7 @@ typedef struct
 } program_json_t;
 
 program_json_t check_valid_json(cJSON *json);
+bool compare_process_config(process_t *a, process_t *b);
 
 status_t init_config(const char *const config);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
@@ -139,5 +140,17 @@ char *get_absolute_cmd_path(char *cmd);
 void free_processes(process_t *const processes, int processes_len);
 void free_taskmaster();
 void free_paths(char **paths);
+
+// process_vec
+typedef struct
+{
+	int size;
+	int index;
+	process_t **data;
+} process_vec_t;
+
+process_vec_t *init_process_vec(int size);
+bool push_process_vec(process_vec_t *vec, process_t *process);
+bool free_process_vec(process_vec_t *vec);
 
 #endif
