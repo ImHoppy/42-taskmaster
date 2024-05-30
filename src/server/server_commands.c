@@ -54,7 +54,7 @@ int com_start(client_data_t *client, char *program_name)
 	return 0;
 }
 
-static void murder_child(process_child_t *child, uint8_t stopsignal)
+void murder_child(process_child_t *child, uint8_t stopsignal)
 {
 	if (child->pid > 0)
 	{

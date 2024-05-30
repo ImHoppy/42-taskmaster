@@ -120,6 +120,10 @@ typedef struct
 
 program_json_t check_valid_json(cJSON *json);
 bool compare_process_config(process_t *a, process_t *b);
+void processes_default_config(process_t *processes, int processes_len);
+status_t parse_config(const cJSON *const json_config, process_t *processes);
+status_t init_children(process_t *processes, int process_len);
+status_t check_unique_name(process_t *processes, int processes_len);
 
 status_t init_config(const char *const config);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
@@ -137,20 +141,9 @@ status_t handler();
 status_t start_handling(process_child_t *child, process_t *current_process, uint32_t child_index);
 char *get_absolute_cmd_path(char *cmd);
 
+void murder_child(process_child_t *child, uint8_t stopsignal);
 void free_processes(process_t *const processes, int processes_len);
 void free_taskmaster();
 void free_paths(char **paths);
-
-// process_vec
-typedef struct
-{
-	int size;
-	int index;
-	process_t **data;
-} process_vec_t;
-
-process_vec_t *init_process_vec(int size);
-bool push_process_vec(process_vec_t *vec, process_t *process);
-bool free_process_vec(process_vec_t *vec);
 
 #endif

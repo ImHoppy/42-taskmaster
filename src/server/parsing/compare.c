@@ -1,9 +1,27 @@
 #include "taskmasterd.h"
 
+static bool compare_string(const char *a, const char *b)
+{
+	if (a == NULL || b == NULL)
+	{
+		if (a == NULL && b == NULL)
+			return true;
+		return false;
+	}
+	return strcmp(a, b) == 0;
+}
+
 static bool compare_array_string(char **a_cmd, char **b_cmd)
 {
 	int a_i = 0;
 	int b_i = 0;
+
+	if (a_cmd == NULL || b_cmd == NULL)
+	{
+		if (a_cmd == NULL && b_cmd == NULL)
+			return true;
+		return false;
+	}
 
 	while (a_cmd[a_i] && b_cmd[b_i])
 	{
@@ -53,11 +71,11 @@ bool compare_process_config(process_t *a, process_t *b)
 		return false;
 	if (!compare_exitcodes(a->config.exitcodes, b->config.exitcodes))
 		return false;
-	if (strcmp(a->config.stdout_logfile, b->config.stdout_logfile) != 0)
+	if (!compare_string(a->config.stdout_logfile, b->config.stdout_logfile))
 		return false;
-	if (strcmp(a->config.stderr_logfile, b->config.stderr_logfile) != 0)
+	if (!compare_string(a->config.stderr_logfile, b->config.stderr_logfile))
 		return false;
-	if (strcmp(a->config.workingdir, b->config.workingdir) != 0)
+	if (!compare_string(a->config.workingdir, b->config.workingdir))
 		return false;
 	return true;
 }

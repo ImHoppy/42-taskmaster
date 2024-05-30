@@ -107,15 +107,15 @@ status_t parse_config(const cJSON *const json_config, process_t *processes)
 	return SUCCESS;
 }
 
-static status_t check_unique_name()
+status_t check_unique_name(process_t *processes, int processes_len)
 {
-	for (int i = 0; i < g_taskmaster.processes_len; i++)
+	for (int i = 0; i < processes_len; i++)
 	{
-		for (int j = i + 1; j < g_taskmaster.processes_len; j++)
+		for (int j = i + 1; j < processes_len; j++)
 		{
-			if (strcmp(g_taskmaster.processes[i].config.name, g_taskmaster.processes[j].config.name) == 0)
+			if (strcmp(processes[i].config.name, processes[j].config.name) == 0)
 			{
-				fprintf(stderr, "Error: process name \"%s\" is not unique\n", g_taskmaster.processes[i].config.name);
+				fprintf(stderr, "Error: process name \"%s\" is not unique\n", processes[i].config.name);
 				return FAILURE;
 			}
 		}
@@ -245,6 +245,27 @@ program_json_t check_valid_json(cJSON *json)
 	return (program_json_t){.fail = 0, .len = len, .programs = programs};
 }
 
+status_t init_children(process_t *processes, int process_len)
+{
+	for (int process_index = 0; process_index < process_len; process_index++)
+	{
+		process_t *process = &(processes[process_index]);
+		if (process->children != NULL)
+			continue;
+		process->children = calloc(sizeof(process_child_t), process->config.numprocs);
+		if (process->children == NULL)
+			return FAILURE;
+		for (uint32_t child_index = 0; child_index < process->config.numprocs; child_index++)
+		{
+			child_default_values(&(process->children[child_index]));
+			if (child_assign_name(&(process->config), &(process->children[child_index]), child_index) == FAILURE)
+				return FAILURE;
+		}
+	}
+
+	return SUCCESS;
+}
+
 status_t init_config(const char *const config)
 {
 	g_taskmaster.json_config = cJSON_Parse(config);
@@ -272,23 +293,10 @@ status_t init_config(const char *const config)
 	if (parse_config(programs, g_taskmaster.processes) == FAILURE)
 		return FAILURE;
 
-	if (check_unique_name() == FAILURE)
+	if (check_unique_name(g_taskmaster.processes, g_taskmaster.processes_len) == FAILURE)
 		return FAILURE;
 
-	for (int process_index = 0; process_index < g_taskmaster.processes_len; process_index++)
-	{
-		process_t *process = &(g_taskmaster.processes[process_index]);
-		process->children = calloc(sizeof(process_child_t), process->config.numprocs);
-		if (process->children == NULL)
-			return FAILURE;
-		for (uint32_t child_index = 0; child_index < process->config.numprocs; child_index++)
-		{
-			child_default_values(&(process->children[child_index]));
-			if (child_assign_name(&(process->config), &(process->children[child_index]), child_index) == FAILURE)
-				return FAILURE;
-		}
-	}
-
+	init_children(g_taskmaster.processes, g_taskmaster.processes_len);
 	print_config(g_taskmaster.processes, g_taskmaster.processes_len);
 	return SUCCESS;
 }

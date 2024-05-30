@@ -98,7 +98,7 @@ void reload_config()
 	}
 	processes_default_config(new_processes, valid_program.len);
 
-	if (parse_config(valid_program.programs, new_processes) == FAILURE)
+	if (parse_config(valid_program.programs, new_processes) == FAILURE || check_unique_name(new_processes, valid_program.len) == FAILURE)
 	{
 		g_taskmaster.running = false;
 		free(config_str);
@@ -107,39 +107,75 @@ void reload_config()
 		return;
 	}
 
-	process_vec_t *new_process_vec = init_process_vec(valid_program.len);
-	process_vec_t *old_process_vec = init_process_vec(g_taskmaster.processes_len);
-	process_vec_t *unchanged_process_vec = init_process_vec(g_taskmaster.processes_len);
-	process_vec_t *changed_process_vec = init_process_vec(g_taskmaster.processes_len);
+	init_children(new_processes, valid_program.len);
 
-	for (int i = 0; i < valid_program.len; i++)
+	for (size_t i = 0; i < valid_program.len; i++)
 	{
 		process_t *process = find_process_config_by_name(g_taskmaster.processes, g_taskmaster.processes_len, new_processes[i].config.name);
 		// Non existing on old config
 		if (process == NULL)
 		{
-			push_process_vec(new_process_vec, &new_processes[i]);
 			continue;
 		}
-		// unchanged config
-		if (compare_process_config(&new_processes[i], process))
-			push_process_vec(unchanged_process_vec, &new_processes[i]);
+		// changed config
+		if (!compare_process_config(&new_processes[i], process))
+		{
+			// process KILL
+			for (size_t child_index = 0; child_index < process->config.numprocs; child_index++)
+			{
+				murder_child(&process->children[child_index], SIGKILL);
+			}
+			// &new_processes[i] START
+			for (size_t child_index = 0; child_index < new_processes[i].config.numprocs; child_index++)
+			{
+				// start
+				if (new_processes[i].config.autostart)
+				{
+					start_handling(&new_processes[i].children[child_index], &new_processes[i], child_index);
+				}
+			}
+		}
 		else
-			// Changed config
-			push_process_vec(changed_process_vec, &new_processes[i]);
+		{
+			// unchanged
+			process_child_t *tmp = new_processes[i].children;
+			new_processes[i].children = process->children;
+			process->children = tmp;
+		}
+	}
+
+	for (int i = 0; i < g_taskmaster.processes_len; i++)
+	{
+		process_t *process = find_process_config_by_name(new_processes, valid_program.len, g_taskmaster.processes[i].config.name);
+		if (process == NULL)
+		{
+			for (size_t child_index = 0; child_index < g_taskmaster.processes[i].config.numprocs; child_index++)
+			{
+				murder_child(&g_taskmaster.processes[i].children[child_index], SIGKILL);
+			}
+		}
 	}
 
 	// TODO: For each process, check old config by name.
 	//	- If not found, create new process.
 	// 	- If found, and compare old and new config. If different, restart process.
 	// 	- If found, and same config, do nothing.
-	// 	- If found, and not in new config, stop process.
 
 	// For Each old config, check if name is in new config.
 	// - if not, stop process.
 
+	process_t *tmp = g_taskmaster.processes;
+	g_taskmaster.processes = new_processes;
+	new_processes = tmp;
+
+	int len_tmp = g_taskmaster.processes_len;
+	g_taskmaster.processes_len = valid_program.len;
+	valid_program.len = len_tmp;
+
+	free_processes(new_processes, valid_program.len);
 	free(config_str);
-	cJSON_free(json_config);
+	cJSON_free(g_taskmaster.json_config);
+	g_taskmaster.json_config = json_config;
 }
 
 int main(int ac, char **av)
