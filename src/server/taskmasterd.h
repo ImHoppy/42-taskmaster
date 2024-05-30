@@ -83,7 +83,10 @@ typedef struct
 	int processes_len;
 	bool running;
 
+	const char *config_file;
+
 	const char *logfile;
+	FILE *log_fp;
 	const char *serverfile;
 } taskmaster_t;
 
@@ -108,6 +111,15 @@ static const int signal_list_len = sizeof(signal_list) / sizeof(signal_list[0]);
 //
 // Parsing
 //
+typedef struct
+{
+	int fail;
+	size_t len;
+	const cJSON *programs;
+} program_json_t;
+
+program_json_t check_valid_json(cJSON *json);
+
 status_t init_config(const char *const config);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
 bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);

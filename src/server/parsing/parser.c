@@ -213,40 +213,56 @@ static status_t child_assign_name(process_config_t *config, process_child_t *chi
 	return SUCCESS;
 }
 
-status_t init_config(const char *const config)
+program_json_t check_valid_json(cJSON *json)
 {
-	g_taskmaster.json_config = cJSON_Parse(config);
-	// printf("%s\n", cJSON_Print(json_config));
-	if (g_taskmaster.json_config == NULL)
+	if (json == NULL)
 	{
 		const char *error_ptr = cJSON_GetErrorPtr();
 		if (error_ptr != NULL)
 		{
-			fprintf(stderr, "Error before: %s\n", error_ptr);
+			log_error("Error before: %s", error_ptr);
 		}
-		return FAILURE;
+		return (program_json_t){.fail = 1, .len = 0, .programs = NULL};
 	}
 
-	if ((g_taskmaster.json_config->type & 0xFF) != cJSON_Object)
+	if ((json->type & 0xFF) != cJSON_Object)
 	{
-		fprintf(stderr, "Error: config must be an objects\n");
-		return FAILURE;
+		log_error("Error: config must be an objects");
+		return (program_json_t){.fail = 1, .len = 0, .programs = NULL};
 	}
 
-	get_key_from_json(g_taskmaster.json_config, programs, false, cJSON_Array);
+	const cJSON *programs = get_value(json, "programs", false, cJSON_Array, "cJSON_Array");
+	if (programs == NULL)
+		return (program_json_t){.fail = 1, .len = 0, .programs = NULL};
+
+	int len = cJSON_GetArraySize(programs);
+	if ((programs->type & 0xFF) != cJSON_Array || len == 0)
+	{
+		fprintf(stderr, "Error: config must be an array of objects\n");
+		return (program_json_t){.fail = 1, .len = 0, .programs = NULL};
+	}
+
+	return (program_json_t){.fail = 0, .len = len, .programs = programs};
+}
+
+status_t init_config(const char *const config)
+{
+	g_taskmaster.json_config = cJSON_Parse(config);
+	// printf("%s\n", cJSON_Print(json_config));
+
+	program_json_t valid_json = check_valid_json(g_taskmaster.json_config);
+	if (valid_json.fail)
+		return FAILURE;
+
+	g_taskmaster.processes_len = valid_json.len;
+	const cJSON *programs = valid_json.programs;
+
 	get_key_from_json(g_taskmaster.json_config, serverfile, true, cJSON_String);
 	get_key_from_json(g_taskmaster.json_config, logfile, true, cJSON_String);
 	if (!assign_non_empty_string(&g_taskmaster.serverfile, serverfile))
 		return FAILURE;
 	if (!assign_non_empty_string(&g_taskmaster.logfile, logfile))
 		return FAILURE;
-
-	g_taskmaster.processes_len = cJSON_GetArraySize(programs);
-	if ((programs->type & 0xFF) != cJSON_Array || g_taskmaster.processes_len == 0)
-	{
-		fprintf(stderr, "Error: config must be an array of objects\n");
-		return FAILURE;
-	}
 
 	g_taskmaster.processes = calloc(sizeof(process_t), g_taskmaster.processes_len);
 	if (g_taskmaster.processes == NULL)
