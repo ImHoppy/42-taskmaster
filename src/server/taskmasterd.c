@@ -78,13 +78,13 @@ void reload_config()
 	}
 
 	cJSON *json_config = cJSON_Parse(config_str);
+	free(config_str);
 
 	program_json_t valid_program = check_valid_json(json_config);
 	if (valid_program.fail)
 	{
 		log_error("Missing programs in configuration file.");
-		free(config_str);
-		cJSON_free(json_config);
+		cJSON_Delete(g_taskmaster.json_config);
 		return;
 	}
 
@@ -92,8 +92,7 @@ void reload_config()
 	if (new_processes == NULL)
 	{
 		g_taskmaster.running = false;
-		free(config_str);
-		cJSON_free(json_config);
+		cJSON_Delete(g_taskmaster.json_config);
 		return;
 	}
 	processes_default_config(new_processes, valid_program.len);
@@ -101,8 +100,7 @@ void reload_config()
 	if (parse_config(valid_program.programs, new_processes) == FAILURE || check_unique_name(new_processes, valid_program.len) == FAILURE)
 	{
 		g_taskmaster.running = false;
-		free(config_str);
-		cJSON_free(json_config);
+		cJSON_Delete(g_taskmaster.json_config);
 		free_processes(new_processes, valid_program.len);
 		return;
 	}
@@ -156,14 +154,6 @@ void reload_config()
 		}
 	}
 
-	// TODO: For each process, check old config by name.
-	//	- If not found, create new process.
-	// 	- If found, and compare old and new config. If different, restart process.
-	// 	- If found, and same config, do nothing.
-
-	// For Each old config, check if name is in new config.
-	// - if not, stop process.
-
 	process_t *tmp = g_taskmaster.processes;
 	g_taskmaster.processes = new_processes;
 	new_processes = tmp;
@@ -173,8 +163,7 @@ void reload_config()
 	valid_program.len = len_tmp;
 
 	free_processes(new_processes, valid_program.len);
-	free(config_str);
-	cJSON_free(g_taskmaster.json_config);
+	cJSON_Delete(g_taskmaster.json_config);
 	g_taskmaster.json_config = json_config;
 }
 
