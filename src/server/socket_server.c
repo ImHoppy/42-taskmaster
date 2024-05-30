@@ -91,6 +91,8 @@ int handle_epoll(server_socket_t *server_socket)
 
 	if (nfds < 0)
 	{
+		if (errno == EINTR)
+			return 0;
 		fprintf(stderr, "Error in epoll_wait: %s\n", strerror(errno));
 		return -1;
 	}
