@@ -38,7 +38,7 @@
 			"stoptime": 2,
 			"umask": "724",
 			"exitcodes": 0,
-			"autostart": false,
+			"autostart": true,
 			"autorestart": true
 		}
 	]

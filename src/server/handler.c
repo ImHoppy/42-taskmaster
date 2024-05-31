@@ -131,6 +131,8 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		child->pid = 0;
 		if (child->state == STOPPING)
 			child->state = STOPPED;
+		else
+			child->state = EXITED;
 		log_debug("%s: Child is terminated because of signal non-intercepted %d", child->name, WTERMSIG(status));
 	}
 	if (WIFEXITED(status))
