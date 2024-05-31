@@ -24,4 +24,7 @@ taskmasterctl
 
 # Test
 tests/wait
+tests/env
 tests/youcantkillme
+
+.nfs*

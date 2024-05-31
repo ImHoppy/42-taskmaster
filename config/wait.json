@@ -1,5 +1,6 @@
 {
-	"logfile": "/tmp/taskmaster.log",
+	"serverfile": "/goinfre/mbouquet/taskmasterd.sock",
+	"logfile": "/goinfre/mbouquet/taskmasterd.log",
 	"programs": [
 		{
 			"name": "wait",
@@ -9,8 +10,25 @@
 			"umask": "724",
 			"stopsignal": 2,
 			"exitcodes": 0,
-			"autostart": true,
+			"autostart": false,
 			"autorestart": true
+		},
+		{
+			"name": "env",
+			"cmd": "tests/env",
+			"numprocs": 1,
+			"starttime": 1,
+			"umask": "724",
+			"stopsignal": 2,
+			"exitcodes": 0,
+			"env": {
+				"LAVIE": "EST BELLE",
+				"ANSWER": "42"
+			},
+			"autostart": true,
+			"autorestart": true,
+			"stdout_logfile": "/goinfre/mbouquet/env_out.txt",
+			"stderr_logfile": "/goinfre/mbouquet/env_err.txt"
 		},
 		{
 			"name": "youcantkillme",
@@ -20,6 +38,7 @@
 			"stoptime": 2,
 			"umask": "724",
 			"exitcodes": 0,
+			"autostart": false,
 			"autorestart": true
 		}
 	]

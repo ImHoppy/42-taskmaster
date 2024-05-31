@@ -87,7 +87,7 @@ int com_restart(client_data_t *client, char *program_name)
 int com_stop(client_data_t *client, char *program_name)
 {
 	process_t *current_process;
-	process_child_t *process_child = find_process_by_name(program_name, &current_process, NULL);
+	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
@@ -105,7 +105,7 @@ int com_stop(client_data_t *client, char *program_name)
 
 int com_status(client_data_t *client, char *program_name)
 {
-	process_child_t *process_child = find_process_by_name(program_name, NULL, NULL);
+	process_child_t *process_child = find_process_by_name(program_name, NULL);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);

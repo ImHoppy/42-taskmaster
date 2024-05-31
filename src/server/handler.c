@@ -1,6 +1,15 @@
 #include "taskmasterd.h"
 
+static void close_fd(int stdout_fd, int stderr_fd)
+{
+	if (stdout_fd > 0)
+		close(stdout_fd);
+	if (stderr_fd > 0)
+		close(stderr_fd);
+}
+
 status_t child_creation(process_t *process, process_child_t *child)
+{
 	pid_t pid = fork();
 
 	if (pid == -1)
@@ -10,10 +19,34 @@ status_t child_creation(process_t *process, process_child_t *child)
 	}
 	else if (pid == 0)
 	{
+		int stdout_fd = -1;
+		int stderr_fd = -1;
+
+		if (process->config.stdout_logfile)
+		{
+			stdout_fd = open(process->config.stdout_logfile, O_CREAT | O_RDWR | O_APPEND, 0644);
+			if (stdout_fd < 0)
+				log_error("%s: Error in opening stdout: %s", process->config.name, strerror(errno));
+			if (dup2(stdout_fd, STDOUT_FILENO) < 0)
+				log_error("%s: Error in dup2 stdout: %s", process->config.name, strerror(errno));
+		}
+
+		if (process->config.stderr_logfile)
+		{
+			stderr_fd = open(process->config.stderr_logfile, O_CREAT | O_RDWR | O_APPEND, 0644);
+			if (stderr_fd < 0)
+				log_error("%s: Error in opening stderr: %s", process->config.name, strerror(errno));
+			if (dup2(stderr_fd, STDERR_FILENO) < 0)
+				log_error("%s: Error in dup2 stderr: %s", process->config.name, strerror(errno));
+		}
+
+		close_fd(stdout_fd, stderr_fd);
+
 		if (process->config.workingdir)
 		{
 			if (chdir(process->config.workingdir) < 0)
 			{
+				log_error("%s: Error in chdir %s: %s", process->config.name, process->config.workingdir, strerror(errno));
 				free_taskmaster();
 				exit(126);
 			}
@@ -91,7 +124,7 @@ bool is_exit_code_accepted(int status, bool exitcodes[256])
 	return exitcodes[status];
 }
 
-status_t exit_handling(int status, process_child_t *child, process_t *current_process, uint32_t child_index)
+status_t exit_handling(int status, process_child_t *child, process_t *current_process)
 {
 	if (WIFSIGNALED(status))
 	{
@@ -192,7 +225,7 @@ status_t handler()
 			}
 			else if (ret > 0)
 			{
-				exit_handling(status, child, current_process, child_index);
+				exit_handling(status, child, current_process);
 			}
 		}
 	}
