@@ -129,7 +129,7 @@ void reload_config()
 				// start
 				if (new_processes[i].config.autostart)
 				{
-					start_handling(&new_processes[i].children[child_index], &new_processes[i], child_index);
+					start_handling(&new_processes[i].children[child_index], &new_processes[i]);
 				}
 			}
 		}

@@ -12,6 +12,8 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "cJSON.h"
 #include "shared.h"
 #include "log/logging.h"
@@ -138,7 +140,7 @@ bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 
 status_t handler();
-status_t start_handling(process_child_t *child, process_t *current_process, uint32_t child_index);
+status_t start_handling(process_child_t *child, process_t *current_process);
 char *get_absolute_cmd_path(char *cmd);
 
 void murder_child(process_child_t *child, uint8_t stopsignal);

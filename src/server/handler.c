@@ -1,7 +1,6 @@
 #include "taskmasterd.h"
 
-status_t child_creation(process_t *process, uint32_t child_index)
-{
+status_t child_creation(process_t *process, process_child_t *child)
 	pid_t pid = fork();
 
 	if (pid == -1)
@@ -26,13 +25,13 @@ status_t child_creation(process_t *process, uint32_t child_index)
 	}
 	else if (pid > 0)
 	{
-		process->children[child_index].pid = pid;
+		child->pid = pid;
 	}
 
 	return SUCCESS;
 }
 
-void backoff_handling(process_child_t *child, process_t *current_process)
+status_t backoff_handling(process_child_t *child, process_t *current_process)
 {
 	if (child->retries_number < current_process->config.startretries)
 	{
@@ -43,8 +42,9 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 		else if ((time(NULL) - child->backoff_time) >= 5)
 		{
 			log_debug("%s: Retrying to start", child->name);
-			child->state = STARTING;
 			child->backoff_time = 0;
+			if (start_handling(child, current_process) == FAILURE)
+				return FAILURE;
 		}
 	}
 	else
@@ -52,6 +52,7 @@ void backoff_handling(process_child_t *child, process_t *current_process)
 		child->state = FATAL;
 		child->backoff_time = 0;
 	}
+	return SUCCESS;
 }
 
 void running_handling(process_child_t *child, process_t *current_process)
@@ -68,14 +69,14 @@ void running_handling(process_child_t *child, process_t *current_process)
 	}
 }
 
-status_t start_handling(process_child_t *child, process_t *current_process, uint32_t child_index)
+status_t start_handling(process_child_t *child, process_t *current_process)
 {
 	if (child->pid > 0)
 	{
 		log_fatal("start_handling when child already exist");
 		return SUCCESS;
 	}
-	if (child_creation(current_process, child_index) == FAILURE)
+	if (child_creation(current_process, child) == FAILURE)
 		return FAILURE;
 
 	child->state = STARTING;
@@ -97,12 +98,12 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		child->pid = 0;
 		if (child->state == STOPPING)
 			child->state = STOPPED;
-		log_debug("%s: Child is terminated because of signal non-intercepted %d\n", child->name, WTERMSIG(status));
+		log_debug("%s: Child is terminated because of signal non-intercepted %d", child->name, WTERMSIG(status));
 	}
 	if (WIFEXITED(status))
 	{
 		child->pid = 0;
-		log_info("%s: Child is terminated with exit code %d and state %s\n",
+		log_info("%s: Child is terminated with exit code %d and state %s",
 				 child->name, WEXITSTATUS(status), state_to_string(child->state));
 		// When program exit in STARTING state
 		if (child->state == STARTING)
@@ -115,7 +116,7 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 		{
 			if (current_process->config.autorestart == ALWAYS)
 			{
-				if (start_handling(child, current_process, child_index) == FAILURE)
+				if (start_handling(child, current_process) == FAILURE)
 					return FAILURE;
 			}
 			else if (current_process->config.autorestart == UNEXPECTED)
@@ -123,8 +124,8 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 				child->state = EXITED;
 				if (!is_exit_code_accepted(WEXITSTATUS(status), current_process->config.exitcodes))
 				{
-					log_debug("%s: Restarting because of exit code is not accepted\n", child->name);
-					if (start_handling(child, current_process, child_index) == FAILURE)
+					log_debug("%s: Restarting because of exit code is not accepted", child->name);
+					if (start_handling(child, current_process) == FAILURE)
 						return FAILURE;
 				}
 			}
@@ -153,14 +154,17 @@ status_t handler()
 				(child->state == EXITED &&
 				 current_process->config.autorestart == ALWAYS))
 			{
-				if (start_handling(child, current_process, child_index) == FAILURE)
+				if (start_handling(child, current_process) == FAILURE)
 					return FAILURE;
 				log_debug("New child: %s with pid: %d", child->name, child->pid);
 			}
 			else if (child->state == STARTING)
 				running_handling(child, current_process);
 			else if (child->state == BACKOFF)
-				backoff_handling(child, current_process);
+			{
+				if (backoff_handling(child, current_process) == FAILURE)
+					return FAILURE;
+			}
 			else if (child->state == STOPPING && (time(NULL) - child->starting_stop) >= current_process->config.stoptime)
 			{
 				child->state = STOPPED;
@@ -171,7 +175,7 @@ status_t handler()
 			else if (child->state == STOPPED && child->need_restart && child->pid == 0)
 			{
 				child->need_restart = false;
-				if (start_handling(child, current_process, child_index) == FAILURE)
+				if (start_handling(child, current_process) == FAILURE)
 					return FAILURE;
 			}
 
