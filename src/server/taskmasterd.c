@@ -40,10 +40,11 @@ char *load_config_file(const char *config_file)
 
 int load_log_file(const char *log_file)
 {
-	g_taskmaster.log_fp = fopen(log_file ? log_file : "/tmp/taskmasterd.log", "w");
+	const char *file = log_file ? log_file : "/tmp/taskmasterd.log";
+	g_taskmaster.log_fp = fopen(file, "w");
 	if (g_taskmaster.log_fp == NULL)
 	{
-		log_error("opening log file");
+		log_error("opening log file %s", file);
 		free_taskmaster();
 		return 1;
 	}
@@ -196,10 +197,11 @@ int main(int ac, char **av)
 		return 1;
 
 	server_socket_t server_socket = {0};
-	server_socket.sfd = create_unix_server_socket(g_taskmaster.serverfile ? g_taskmaster.serverfile : "/tmp/taskmasterd.sock", LIBSOCKET_STREAM, SOCK_CLOEXEC);
+	const char *file = g_taskmaster.serverfile ? g_taskmaster.serverfile : "/tmp/taskmasterd.sock";
+	server_socket.sfd = create_unix_server_socket(file, LIBSOCKET_STREAM, SOCK_CLOEXEC);
 	if (server_socket.sfd < 0)
 	{
-		log_error("creating unix server socket: %s", strerror(errno));
+		log_error("creating unix server socket: %s: %s", file, strerror(errno));
 		free_taskmaster();
 		return 1;
 	}
