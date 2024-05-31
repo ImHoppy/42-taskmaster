@@ -8,4 +8,9 @@ int main(int ac, char **av, char **envp)
 	{
 		printf("%s\n", envp[i]);
 	}
+	fflush(stdout);
+	while (1)
+	{
+		sleep(1);
+	}
 }
