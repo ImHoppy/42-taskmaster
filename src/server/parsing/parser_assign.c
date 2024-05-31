@@ -19,14 +19,14 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 
 	if (envs_count > UINT16_MAX)
 	{
-		fprintf(stderr, "Error: envs count must be less than %d\n", UINT16_MAX);
+		log_error("envs count must be less than %d", UINT16_MAX);
 		return false;
 	}
 
 	processes->config.envs = calloc(envs_count + 1, sizeof(char *));
 	if (processes->config.envs == NULL)
 	{
-		fprintf(stderr, "Error: malloc failed\n");
+		log_error("malloc failed");
 		return false;
 	}
 
@@ -36,7 +36,7 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 	{
 		if (!cJSON_IsString(any_env) && any_env->valuestring == NULL)
 		{
-			fprintf(stderr, "Error: env %s is not a string\n", any_env->string);
+			log_error("env %s is not a string", any_env->string);
 			return false;
 		}
 		processes->config.envs[env_index] = calloc(strlen(any_env->string) + strlen(any_env->valuestring) + 2, sizeof(char));
@@ -54,7 +54,7 @@ static bool assign_exitcode(bool exitcodes[256], int exitcode)
 {
 	if (exitcode < 0 || exitcode > 255)
 	{
-		fprintf(stderr, "Error: exitcode must be between 0 and 255\n");
+		log_error("exitcode must be between 0 and 255");
 		return false;
 	}
 	exitcodes[exitcode] = true;
@@ -71,7 +71,7 @@ bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 	{
 		if (cJSON_GetArraySize(exitcodes_obj) == 0)
 		{
-			fprintf(stderr, "Error: exitcodes must not be empty\n");
+			log_error("exitcodes must not be empty");
 			return false;
 		}
 		const cJSON *exitcode = NULL;
@@ -79,7 +79,7 @@ bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 		{
 			if ((exitcode->type & 0xFF) != cJSON_Number)
 			{
-				fprintf(stderr, "Error: exitcode must be a number\n");
+				log_error("exitcode must be a number");
 				return false;
 			}
 			if (!assign_exitcode(exitcodes, exitcode->valueint))
@@ -90,7 +90,7 @@ bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj)
 		assign_exitcode(exitcodes, exitcodes_obj->valueint);
 	else
 	{
-		fprintf(stderr, "Error: exitcodes must be an array or a number\n");
+		log_error("exitcodes must be an array or a number");
 		return false;
 	}
 
@@ -103,7 +103,7 @@ bool assign_non_empty_string(const char **variable, const cJSON *const value)
 		return true;
 	if (value->valuestring == NULL || value->valuestring[0] == '\0')
 	{
-		fprintf(stderr, "Error: %s must not be empty\n", value->string);
+		log_error("%s must not be empty", value->string);
 		return false;
 	}
 	*variable = value->valuestring;
@@ -132,7 +132,7 @@ bool assign_non_zero_uint32(uint32_t *variable, const cJSON *const value)
 		return true;
 	if (value->valueint <= 0 || value->valueint > INT32_MAX)
 	{
-		fprintf(stderr, "Error: %s must be greater than 0\n", value->string);
+		log_error("%s must be greater than 0", value->string);
 		return false;
 	}
 	*variable = value->valueint;
@@ -150,7 +150,7 @@ bool assign_umask(int *umask_var, const cJSON *const umask)
 	{
 		if (umask->valuestring[i] < '0' || umask->valuestring[i] > '7')
 		{
-			fprintf(stderr, "Error: umask must be 3 digits between 0 and 7\n");
+			log_error("umask must be 3 digits between 0 and 7");
 			return false;
 		}
 	}
@@ -187,10 +187,10 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal)
 	}
 	else
 	{
-		fprintf(stderr, "Error: stopsignal must be a string or number\n");
+		log_error("stopsignal must be a string or number");
 		return false;
 	}
-	fprintf(stderr, "Error: stopsignal %s unknown, must be one of", signal->valuestring);
+	log_error("stopsignal %s unknown, must be one of", signal->valuestring);
 	for (int i = 0; i < signal_list_len; i++)
 	{
 		fprintf(stderr, " %s", signal_list[i].name);
@@ -222,7 +222,7 @@ bool assign_autorestart(autorestart_t *variable, const cJSON *const value)
 		*variable = UNEXPECTED;
 	else
 	{
-		fprintf(stderr, "Error: autorestart must be a boolean or \"unexpected\"\n");
+		log_error("autorestart must be a boolean or \"unexpected\"");
 		return false;
 	}
 	return true;

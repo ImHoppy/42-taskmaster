@@ -17,12 +17,12 @@ const cJSON *get_value(const cJSON *const object, const char *const key, bool op
 	const cJSON *value = cJSON_GetObjectItemCaseSensitive(object, key);
 	if (value == NULL && !optional)
 	{
-		fprintf(stderr, "Error: key \"%s\" not found\n", key);
+		log_error("key \"%s\" not found", key);
 		return NULL;
 	}
 	if (value != NULL && ((value->type & 0xFF) & target_type) == 0)
 	{
-		fprintf(stderr, "Error: key \"%s\" is not of type %s\n", key, type_msg);
+		log_error("key \"%s\" is not of type %s", key, type_msg);
 		return NULL;
 	}
 	return value;
@@ -61,7 +61,7 @@ status_t parse_config(const cJSON *const json_config, process_t *processes)
 			return FAILURE;
 		if (!ft_stris(processes[i].config.name, isalpha))
 		{
-			fprintf(stderr, "Error: process name \"%s\" must contain only alphabetic characters\n", processes[i].config.name);
+			log_error("process name \"%s\" must contain only alphabetic characters", processes[i].config.name);
 			return FAILURE;
 		}
 		if ((processes[i].config.cmd = split_space(cmd->valuestring)) == NULL)
@@ -115,7 +115,7 @@ status_t check_unique_name(process_t *processes, int processes_len)
 		{
 			if (strcmp(processes[i].config.name, processes[j].config.name) == 0)
 			{
-				fprintf(stderr, "Error: process name \"%s\" is not unique\n", processes[i].config.name);
+				log_error("process name \"%s\" is not unique", processes[i].config.name);
 				return FAILURE;
 			}
 		}
@@ -238,7 +238,7 @@ program_json_t check_valid_json(cJSON *json)
 	int len = cJSON_GetArraySize(programs);
 	if ((programs->type & 0xFF) != cJSON_Array || len == 0)
 	{
-		fprintf(stderr, "Error: config must be an array of objects\n");
+		log_error("config must be an array of objects");
 		return (program_json_t){.fail = 1, .len = 0, .programs = NULL};
 	}
 
