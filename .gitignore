@@ -28,3 +28,7 @@ tests/env
 tests/youcantkillme
 
 .nfs*
+
+env_err.txt
+env_out.txt
+taskmasterd.log

@@ -1,6 +1,6 @@
 {
-	"serverfile": "/goinfre/mbouquet/taskmasterd.sock",
-	"logfile": "/goinfre/mbouquet/taskmasterd.log",
+	"serverfile": "./taskmasterd.sock",
+	"logfile": "./taskmasterd.log",
 	"programs": [
 		{
 			"name": "wait",
@@ -27,13 +27,13 @@
 			},
 			"autostart": true,
 			"autorestart": true,
-			"stdout_logfile": "/goinfre/mbouquet/env_out.txt",
-			"stderr_logfile": "/goinfre/mbouquet/env_err.txt"
+			"stdout_logfile": "./env_out.txt",
+			"stderr_logfile": "./env_err.txt"
 		},
 		{
 			"name": "youcantkillme",
 			"cmd": "tests/youcantkillme",
-			"numprocs": 1,
+			"numprocs": 5,
 			"starttime": 1,
 			"stoptime": 2,
 			"umask": "724",
