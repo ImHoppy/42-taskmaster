@@ -26,9 +26,47 @@ static process_child_t *find_process_by_name(char *program_name, process_t **pro
 	return NULL;
 }
 
+static process_t *find_program_by_name(char *program_name)
+{
+	for (int i = 0; i < g_taskmaster.processes_len; i++)
+	{
+		process_t *current_process = &g_taskmaster.processes[i];
+		if (strcmp(current_process->config.name, program_name) == 0)
+		{
+			return current_process;
+		}
+	}
+	return NULL;
+}
+
+static status_t start_child(process_t *current_process, process_child_t *process_child)
+{
+	if (process_child->state != STOPPED &&
+		process_child->state != EXITED &&
+		process_child->state != FATAL &&
+		process_child->state != NON_STARTED)
+	{
+		return FAILURE;
+	}
+	if (start_handling(process_child, current_process) == FAILURE)
+		return FAILURE;
+	return SUCCESS;
+}
+
 int com_start(client_data_t *client, char *program_name)
 {
-	process_t *current_process;
+	process_t *current_process = find_program_by_name(program_name);
+	if (current_process != NULL)
+	{
+		for (size_t i = 0; i < current_process->config.numprocs; i++)
+		{
+			process_child_t *process_child = &current_process->children[i];
+			if (process_child)
+				start_child(current_process, process_child);
+		}
+		dprintf(client->fd, "Starting all %s\n", program_name);
+		return 0;
+	}
 
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
@@ -36,17 +74,11 @@ int com_start(client_data_t *client, char *program_name)
 		dprintf(client->fd, "Program %s not found\n", program_name);
 		return 1;
 	}
-	if (process_child->state != STOPPED &&
-		process_child->state != EXITED &&
-		process_child->state != FATAL &&
-		process_child->state != NON_STARTED)
+	if (start_child(current_process, process_child) == FAILURE)
 	{
 		dprintf(client->fd, "Program %s is already running\n", program_name);
 		return 1;
 	}
-	if (start_handling(process_child, current_process) == FAILURE)
-		return 1;
-	// process_child->state = STARTING;
 	dprintf(client->fd, "Starting %s\n", program_name);
 	return 0;
 }
@@ -63,7 +95,21 @@ void murder_child(process_child_t *child, uint8_t stopsignal)
 
 int com_restart(client_data_t *client, char *program_name)
 {
-	process_t *current_process;
+	process_t *current_process = find_program_by_name(program_name);
+	if (current_process != NULL)
+	{
+		for (size_t i = 0; i < current_process->config.numprocs; i++)
+		{
+			process_child_t *process_child = &current_process->children[i];
+			if (process_child && (process_child->state == RUNNING || process_child->state == STOPPED))
+			{
+				process_child->need_restart = true;
+				murder_child(process_child, current_process->config.stopsignal);
+			}
+		}
+		dprintf(client->fd, "Restarting all %s\n", program_name);
+		return 0;
+	}
 
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
@@ -79,14 +125,26 @@ int com_restart(client_data_t *client, char *program_name)
 
 	process_child->need_restart = true;
 	murder_child(process_child, current_process->config.stopsignal);
-	// TODO: Need to specify the child to restart
 	dprintf(client->fd, "Restarting %s\n", program_name);
 	return 0;
 }
 
 int com_stop(client_data_t *client, char *program_name)
 {
-	process_t *current_process;
+	process_t *current_process = find_program_by_name(program_name);
+	if (current_process != NULL)
+	{
+		for (size_t i = 0; i < current_process->config.numprocs; i++)
+		{
+			process_child_t *process_child = &current_process->children[i];
+			if (process_child && process_child->state == RUNNING)
+			{
+				murder_child(process_child, current_process->config.stopsignal);
+			}
+		}
+		dprintf(client->fd, "Stopping all %s\n", program_name);
+		return 0;
+	}
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
 	{
@@ -105,6 +163,19 @@ int com_stop(client_data_t *client, char *program_name)
 
 int com_status(client_data_t *client, char *program_name)
 {
+	process_t *current_process = find_program_by_name(program_name);
+	if (current_process != NULL)
+	{
+		for (size_t i = 0; i < current_process->config.numprocs; i++)
+		{
+			process_child_t *process_child = &current_process->children[i];
+			if (process_child)
+			{
+				dprintf(client->fd, "%s %s\n", process_child->name, state_to_string(process_child->state));
+			}
+		}
+		return 0;
+	}
 	process_child_t *process_child = find_process_by_name(program_name, NULL);
 	if (process_child == NULL)
 	{
