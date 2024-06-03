@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <strings.h>
 
 #include "input/readline.h"
 #include "taskmasterctl.h"
@@ -11,12 +12,14 @@
 
 client_t g_client = {0};
 
+#define BUFFER_SIZE 1024
+
 int read_socket(bool doWrite)
 {
 	if (!g_client.buffer)
 	{
-		g_client.buffer = calloc(sizeof(char), 1024 + 1);
-		g_client.buffer_len = 1024;
+		g_client.buffer = calloc(sizeof(char), BUFFER_SIZE + 1);
+		g_client.buffer_len = BUFFER_SIZE;
 		if (!g_client.buffer)
 		{
 			fprintf(stderr, "Failed to allocate memory for the buffer\n");
@@ -28,29 +31,31 @@ int read_socket(bool doWrite)
 	char buf[1025] = {0};
 	int total_read = 0;
 	int n = 0;
-	while ((n = read(g_client.sfd, buf, 1024)) > 0)
+	while ((n = recv(g_client.sfd, buf, BUFFER_SIZE, 0)) > 0)
 	{
 		total_read += n;
-		if (n < 0)
-		{
-			fprintf(stderr, "Failed to read response from the server\n");
-			g_client.fatal_error = true;
-			break;
-		}
-		if (n == 0)
-			break;
 		if (doWrite)
 			write(1, buf, n);
-		if (total_read < g_client.buffer_len)
-			strcat(g_client.buffer, buf);
-		else
+		if (total_read >= g_client.buffer_len)
 		{
-			g_client.buffer = realloc(g_client.buffer, g_client.buffer_len + 1024 + 1);
-			g_client.buffer_len += 1024;
-			strcat(g_client.buffer, buf);
+			g_client.buffer = realloc(g_client.buffer, g_client.buffer_len + BUFFER_SIZE + 1);
+			if (!g_client.buffer)
+			{
+				g_client.fatal_error = true;
+				return -1;
+			}
+			g_client.buffer_len += BUFFER_SIZE;
 		}
-		if (n < 1024)
+		strcat(g_client.buffer, buf);
+		bzero(buf, 1024);
+		if (n < BUFFER_SIZE)
 			break;
+	}
+	if (n < 0)
+	{
+		fprintf(stderr, "Failed to read response from the server\n");
+		g_client.fatal_error = true;
+		return -1;
 	}
 	return total_read;
 }
