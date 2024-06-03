@@ -128,12 +128,12 @@ status_t exit_handling(int status, process_child_t *child, process_t *current_pr
 {
 	if (WIFSIGNALED(status))
 	{
+		log_debug("%s: Child is terminated because of signal non-intercepted %d and state %s", child->name, WTERMSIG(status), state_to_string(child->state));
 		child->pid = 0;
 		if (child->state == STOPPING)
 			child->state = STOPPED;
-		else
+		else if (child->state != STOPPED)
 			child->state = EXITED;
-		log_debug("%s: Child is terminated because of signal non-intercepted %d", child->name, WTERMSIG(status));
 	}
 	if (WIFEXITED(status))
 	{
@@ -202,13 +202,13 @@ status_t handler()
 			}
 			else if (child->state == STOPPING && (time(NULL) - child->starting_stop) >= current_process->config.stoptime)
 			{
-				child->state = STOPPED;
 				log_info("Hard stopping %s", child->name);
 				if (child->pid != 0)
 					kill(child->pid, SIGKILL);
 			}
 			else if (child->state == STOPPED && child->need_restart && child->pid == 0)
 			{
+				log_debug("Need restart");
 				child->need_restart = false;
 				if (start_handling(child, current_process) == FAILURE)
 					return FAILURE;
