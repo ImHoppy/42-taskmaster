@@ -72,8 +72,13 @@ void request_list(void)
 	size_t total_programs = 0;
 	for (int i = 0; g_client.buffer[i] && i < g_client.buffer_len; i++)
 	{
-		if (g_client.buffer[i] == '\n')
+		if (g_client.buffer[i] == ';')
 			total_programs++;
+	}
+	for (size_t i = 0; i < g_client.programs_len; i++)
+	{
+		free(g_client.programs[i].name);
+		g_client.programs[i].name = NULL;
 	}
 	if (g_client.programs_len < total_programs)
 	{
@@ -81,9 +86,9 @@ void request_list(void)
 		assert(g_client.programs && "Failed to allocate memory for programs");
 		g_client.programs_len = total_programs;
 	}
-	bzero(g_client.programs, total_programs * sizeof(program_t));
+	bzero(g_client.programs, (total_programs + 1) * sizeof(program_t));
 
-	char *line = strtok(g_client.buffer, "\n");
+	char *line = strtok(g_client.buffer, ";");
 	int i = 0;
 	while (line)
 	{
@@ -96,7 +101,7 @@ void request_list(void)
 			g_client.programs[i].status = atoi(status);
 			i++;
 		}
-		line = strtok(NULL, "\n");
+		line = strtok(NULL, ";");
 	}
 }
 

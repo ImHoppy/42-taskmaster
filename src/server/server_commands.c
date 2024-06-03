@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
+#include <strings.h>
 
 #include "shared.h"
 #include "taskmasterd.h"
@@ -189,13 +190,23 @@ int com_status(client_data_t *client, char *program_name)
 int com_list(client_data_t *client, char *program_name)
 {
 	(void)program_name;
+	char buffer[1024] = {0};
+	size_t index = 0;
 	for (int i = 0; i < g_taskmaster.processes_len; i++)
 	{
 		process_t *process = &g_taskmaster.processes[i];
 		for (uint32_t j = 0; j < process->config.numprocs; j++)
 		{
-			dprintf(client->fd, "%s %d\n", process->children[j].name, process->children[j].state);
+			dprintf(client->fd, "%s %d;", process->children[j].name, process->children[j].state);
+			if (index > (1024 - 100))
+			{
+				write(client->fd, buffer, index);
+				bzero(buffer, index);
+				index = 0;
+			}
+			index += snprintf(buffer + index, 1024 - index, "%s %d;", process->children[j].name, process->children[j].state);
 		}
 	}
+	dprintf(client->fd, "\n");
 	return 0;
 }

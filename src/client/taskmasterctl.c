@@ -52,7 +52,7 @@ int read_socket(bool doWrite)
 		if (n < 1024)
 			break;
 	}
-	return n;
+	return total_read;
 }
 
 int main(int ac, char **av)

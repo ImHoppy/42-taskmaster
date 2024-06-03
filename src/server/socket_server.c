@@ -10,13 +10,13 @@ int init_epoll(server_socket_t *server_socket)
 	server_socket->epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (server_socket->epoll_fd < 0)
 	{
-		fprintf(stderr, "Error creating epoll instance: %s\n", strerror(errno));
+		log_error("Error creating epoll instance: %s", strerror(errno));
 		return -1;
 	}
 
 	if (add_epoll_event(server_socket, server_socket->sfd, EPOLLIN, NULL) < 0)
 	{
-		fprintf(stderr, "Error adding epoll event: %s\n", strerror(errno));
+		log_error("Error adding epoll event: %s", strerror(errno));
 		return 1;
 	}
 
@@ -71,7 +71,7 @@ static status_t parse_message(client_data_t *client, char *buf)
 				arg = "";
 			if (commands[i].func(client, arg) < 0)
 			{
-				fprintf(stderr, "Error executing command: %s\n", strerror(errno));
+				log_error("Error executing command: %s", strerror(errno));
 				return FAILURE;
 			}
 			return SUCCESS;
@@ -93,7 +93,7 @@ int handle_epoll(server_socket_t *server_socket)
 	{
 		if (errno == EINTR)
 			return 0;
-		fprintf(stderr, "Error in epoll_wait: %s\n", strerror(errno));
+		log_error("Error in epoll_wait: %s", strerror(errno));
 		return -1;
 	}
 
@@ -101,7 +101,7 @@ int handle_epoll(server_socket_t *server_socket)
 	{
 		if (events[i].events & EPOLLERR)
 		{
-			fprintf(stderr, "Error in epoll event\n");
+			log_error("Error in epoll event");
 			remove_epoll_event(server_socket, events[i].data.fd);
 			if (events[i].data.ptr != NULL)
 			{
@@ -124,25 +124,25 @@ int handle_epoll(server_socket_t *server_socket)
 			{
 				if (clients_count >= MAX_EPOLL_EVENTS)
 				{
-					fprintf(stderr, "Too many clients\n");
+					log_error("Too many clients");
 					continue;
 				}
 				int client_fd = accept_unix_stream_socket(server_socket->sfd, SOCK_NONBLOCK | SOCK_CLOEXEC);
 				if (client_fd < 0)
 				{
-					fprintf(stderr, "Error accepting client: %s\n", strerror(errno));
+					log_error("Error accepting client: %s", strerror(errno));
 					continue;
 				}
 				client_data_t *client = calloc(1, sizeof(client_data_t));
 
 				if (client == NULL || add_epoll_event(server_socket, client_fd, EPOLLIN, client) < 0)
 				{
-					fprintf(stderr, "Error adding client epoll event: %s\n", strerror(errno));
+					log_error("Error adding client epoll event: %s", strerror(errno));
 					close(client_fd);
 					free(client);
 					continue;
 				}
-				printf("Client connected with fd: %d\n", client_fd);
+				log_info("Client connected with fd: %d", client_fd);
 				client->fd = client_fd;
 				client->index = clients_count;
 				clients[clients_count++] = client;
@@ -157,10 +157,10 @@ int handle_epoll(server_socket_t *server_socket)
 					// Error on read
 					if (n < 0)
 					{
-						fprintf(stderr, "Error reading from client: %s\n", strerror(errno));
+						log_error("Error reading from client: %s", strerror(errno));
 					}
 					// Client disconnected
-					printf("Client disconnected with fd: %d\n", client->fd);
+					log_info("Client disconnected with fd: %d", client->fd);
 					remove_epoll_event(server_socket, client->fd);
 					close(client->fd);
 					shift_clients(clients, &clients_count, client->index);
@@ -168,7 +168,7 @@ int handle_epoll(server_socket_t *server_socket)
 				}
 				else
 				{
-					fprintf(stdout, "Received: %s\n", buf);
+					log_debug("Received: %s", buf);
 					parse_message(client, buf);
 				}
 			}
@@ -187,7 +187,7 @@ int handle_epoll(server_socket_t *server_socket)
 					ssize_t n = write(client->fd, client->buf, strlen(client->buf));
 					if (n < 0)
 					{
-						fprintf(stderr, "Error writing to client: %s\n", strerror(errno));
+						log_error("Error writing to client: %s", strerror(errno));
 						remove_epoll_event(server_socket, client->fd);
 						close(client->fd);
 						shift_clients(clients, &clients_count, client->index);

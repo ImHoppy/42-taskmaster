@@ -164,7 +164,6 @@ char *command_generator(const char *text, int state)
 char *programs_generator(const char *text, int state)
 {
 	static size_t list_index, len;
-	char *name;
 
 	/* If this is a new word to complete, initialize now.  This includes
 	   saving the length of TEXT for efficiency, and initializing the index
@@ -181,9 +180,9 @@ char *programs_generator(const char *text, int state)
 	/* Return the next name which partially matches from the programs list. */
 	while (list_index < g_client.programs_len)
 	{
-		name = g_client.programs[list_index].name;
+		char *name = g_client.programs[list_index].name;
 		list_index++;
-		if (strncmp(name, text, len) == 0)
+		if (name && strncmp(name, text, len) == 0)
 			return (strdup(name));
 	}
 
