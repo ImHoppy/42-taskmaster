@@ -69,7 +69,8 @@ void reload_config()
 			{
 				murder_child(&g_taskmaster.processes[i].children[child_index], SIGKILL);
 				int status;
-				waitpid(g_taskmaster.processes[i].children[child_index].pid, &status, 0);
+				if (g_taskmaster.processes[i].children[child_index].pid > 0)
+					waitpid(g_taskmaster.processes[i].children[child_index].pid, &status, 0);
 			}
 		}
 		else
@@ -91,7 +92,8 @@ void reload_config()
 			{
 				murder_child(&g_taskmaster.processes[i].children[child_index], SIGKILL);
 				int status;
-				waitpid(g_taskmaster.processes[i].children[child_index].pid, &status, 0);
+				if (g_taskmaster.processes[i].children[child_index].pid > 0)
+					waitpid(g_taskmaster.processes[i].children[child_index].pid, &status, 0);
 			}
 		}
 	}
