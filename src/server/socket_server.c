@@ -69,7 +69,7 @@ static status_t parse_message(client_data_t *client, char *buf)
 				arg[strlen(arg) - 1] = '\0';
 			if (arg == NULL)
 				arg = "";
-			if (commands[i].func(client, arg) < 0)
+			if (commands[i].func(client, arg) == FAILURE)
 			{
 				log_error("Error executing command: %s", strerror(errno));
 				return FAILURE;
@@ -80,7 +80,7 @@ static status_t parse_message(client_data_t *client, char *buf)
 	return SUCCESS;
 }
 
-int handle_epoll(server_socket_t *server_socket)
+status_t handle_epoll(server_socket_t *server_socket)
 {
 	static client_data_t *clients[MAX_EPOLL_EVENTS] = {0};
 	static int clients_count = 0;
@@ -94,7 +94,7 @@ int handle_epoll(server_socket_t *server_socket)
 		if (errno == EINTR)
 			return 0;
 		log_error("Error in epoll_wait: %s", strerror(errno));
-		return -1;
+		return FAILURE;
 	}
 
 	for (int i = 0; i < nfds; i++)
@@ -114,7 +114,7 @@ int handle_epoll(server_socket_t *server_socket)
 			else
 			{
 				// socket server has error
-				return -1;
+				return FAILURE;
 			}
 		}
 		else if (events[i].events & EPOLLIN)
@@ -158,6 +158,7 @@ int handle_epoll(server_socket_t *server_socket)
 					if (n < 0)
 					{
 						log_error("Error reading from client: %s", strerror(errno));
+						return FAILURE;
 					}
 					// Client disconnected
 					log_info("Client disconnected with fd: %d", client->fd);
@@ -169,7 +170,10 @@ int handle_epoll(server_socket_t *server_socket)
 				else
 				{
 					log_debug("Received: %s", buf);
-					parse_message(client, buf);
+					if (parse_message(client, buf) == FAILURE)
+					{
+						return FAILURE;
+					}
 				}
 			}
 		}
@@ -203,5 +207,5 @@ int handle_epoll(server_socket_t *server_socket)
 			}
 		}
 	}
-	return 0;
+	return SUCCESS;
 }

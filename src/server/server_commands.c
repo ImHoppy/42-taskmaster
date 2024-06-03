@@ -54,7 +54,7 @@ static status_t start_child(process_t *current_process, process_child_t *process
 	return SUCCESS;
 }
 
-int com_start(client_data_t *client, char *program_name)
+status_t com_start(client_data_t *client, char *program_name)
 {
 	process_t *current_process = find_program_by_name(program_name);
 	if (current_process != NULL)
@@ -66,22 +66,22 @@ int com_start(client_data_t *client, char *program_name)
 				start_child(current_process, process_child);
 		}
 		dprintf(client->fd, "Starting all %s\n", program_name);
-		return 0;
+		return SUCCESS;
 	}
 
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	if (start_child(current_process, process_child) == FAILURE)
 	{
 		dprintf(client->fd, "Program %s is already running\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	dprintf(client->fd, "Starting %s\n", program_name);
-	return 0;
+	return SUCCESS;
 }
 
 void murder_child(process_child_t *child, uint8_t stopsignal)
@@ -94,7 +94,7 @@ void murder_child(process_child_t *child, uint8_t stopsignal)
 	}
 }
 
-int com_restart(client_data_t *client, char *program_name)
+status_t com_restart(client_data_t *client, char *program_name)
 {
 	process_t *current_process = find_program_by_name(program_name);
 	if (current_process != NULL)
@@ -109,28 +109,28 @@ int com_restart(client_data_t *client, char *program_name)
 			}
 		}
 		dprintf(client->fd, "Restarting all %s\n", program_name);
-		return 0;
+		return SUCCESS;
 	}
 
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	if (process_child->state != RUNNING && process_child->state != STOPPED)
 	{
 		dprintf(client->fd, "Program %s is not running\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 
 	process_child->need_restart = true;
 	murder_child(process_child, current_process->config.stopsignal);
 	dprintf(client->fd, "Restarting %s\n", program_name);
-	return 0;
+	return SUCCESS;
 }
 
-int com_stop(client_data_t *client, char *program_name)
+status_t com_stop(client_data_t *client, char *program_name)
 {
 	process_t *current_process = find_program_by_name(program_name);
 	if (current_process != NULL)
@@ -144,25 +144,25 @@ int com_stop(client_data_t *client, char *program_name)
 			}
 		}
 		dprintf(client->fd, "Stopping all %s\n", program_name);
-		return 0;
+		return SUCCESS;
 	}
 	process_child_t *process_child = find_process_by_name(program_name, &current_process);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	if (process_child->state != RUNNING)
 	{
 		dprintf(client->fd, "Program %s is not running\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	dprintf(client->fd, "Stopping %s\n", program_name);
 	murder_child(process_child, current_process->config.stopsignal);
-	return 0;
+	return SUCCESS;
 }
 
-int com_status(client_data_t *client, char *program_name)
+status_t com_status(client_data_t *client, char *program_name)
 {
 	process_t *current_process = find_program_by_name(program_name);
 	if (current_process != NULL)
@@ -175,38 +175,47 @@ int com_status(client_data_t *client, char *program_name)
 				dprintf(client->fd, "%s %s\n", process_child->name, state_to_string(process_child->state));
 			}
 		}
-		return 0;
+		return SUCCESS;
 	}
 	process_child_t *process_child = find_process_by_name(program_name, NULL);
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return 1;
+		return FAILURE;
 	}
 	dprintf(client->fd, "%s %s\n", process_child->name, state_to_string(process_child->state));
-	return 0;
+	return SUCCESS;
 }
 
-int com_list(client_data_t *client, char *program_name)
+status_t com_list(client_data_t *client, char *program_name)
 {
 	(void)program_name;
-	char buffer[1024] = {0};
-	size_t index = 0;
+	char *buffer = calloc(sizeof(char *), 1024);
+	if (!buffer)
+		return FAILURE;
+	size_t buffer_size = 1024;
+	size_t total_size = 0;
 	for (int i = 0; i < g_taskmaster.processes_len; i++)
 	{
 		process_t *process = &g_taskmaster.processes[i];
 		for (uint32_t j = 0; j < process->config.numprocs; j++)
 		{
-			dprintf(client->fd, "%s %d;", process->children[j].name, process->children[j].state);
-			if (index > (1024 - 100))
+			char tmp_buffer[512] = {0};
+			size_t size = snprintf(tmp_buffer, 512, "%s %d;", process->children[j].name, process->children[j].state);
+			total_size += size;
+			if (buffer && total_size > buffer_size)
 			{
-				write(client->fd, buffer, index);
-				bzero(buffer, index);
-				index = 0;
+				buffer = realloc(buffer, sizeof(char *) * (total_size + 512));
+				if (!buffer)
+					return FAILURE;
+				buffer_size = total_size + 512;
 			}
-			index += snprintf(buffer + index, 1024 - index, "%s %d;", process->children[j].name, process->children[j].state);
+			if (buffer)
+			{
+				strncat(buffer, tmp_buffer, size);
+			}
 		}
 	}
-	dprintf(client->fd, "\n");
-	return 0;
+	write(client->fd, buffer, total_size);
+	return SUCCESS;
 }

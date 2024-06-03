@@ -215,7 +215,7 @@ int main(int ac, char **av)
 	g_taskmaster.running = true;
 	while (g_taskmaster.running)
 	{
-		if (handle_epoll(&server_socket) < 0)
+		if (handle_epoll(&server_socket) == FAILURE)
 			break;
 		// Handle each process
 		handler();
