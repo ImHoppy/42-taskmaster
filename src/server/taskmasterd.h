@@ -120,13 +120,14 @@ typedef struct
 	const cJSON *programs;
 } program_json_t;
 
+// Parsing
 program_json_t check_valid_json(cJSON *json);
 bool compare_process_config(process_t *a, process_t *b);
 void processes_default_config(process_t *processes, int processes_len);
 status_t parse_config(const cJSON *const json_config, process_t *processes);
 status_t init_children(process_t *processes, int process_len);
 status_t check_unique_name(process_t *processes, int processes_len);
-
+// Parsing assignation
 status_t init_config(const char *const config);
 bool parse_envs(const cJSON *const envs_obj, process_t *processes);
 bool assign_exitcodes(bool exitcodes[256], const cJSON *const exitcodes_obj);
@@ -139,13 +140,19 @@ bool assign_signal(uint8_t *stopsignal, const cJSON *const signal);
 bool assign_non_negative(uint32_t *variable, const cJSON *const value);
 bool assign_autorestart(autorestart_t *variable, const cJSON *const value);
 
+// Child handling
 status_t handler();
 status_t start_handling(process_child_t *child, process_t *current_process);
 char *get_absolute_cmd_path(char *cmd);
 
+// Cleaning
 void murder_child(process_child_t *child, uint8_t stopsignal);
 void free_processes(process_t *const processes, int processes_len);
 void free_taskmaster();
 void free_paths(char **paths);
+
+// Reload Config
+void reload_config();
+char *load_config_file(const char *config_file);
 
 #endif
