@@ -1,0 +1,18 @@
+{
+	"serverfile": "./taskmasterd.sock",
+	"logfile": "./taskmasterd.log",
+	"programs": [
+		{
+			"name": "wait",
+			"cmd": "tests/wait 1",
+			"numprocs": 1,
+			"starttime": 1,
+			"umask": "724",
+			"stopsignal": 2,
+			"exitcodes": 0,
+			"startretries": 2,
+			"autostart": true,
+			"autorestart": true
+		}
+	]
+}

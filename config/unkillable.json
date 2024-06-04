@@ -1,0 +1,17 @@
+{
+	"serverfile": "./taskmasterd.sock",
+	"logfile": "./taskmasterd.log",
+	"programs": [
+		{
+			"name": "youcantkillme",
+			"cmd": "tests/youcantkillme",
+			"numprocs": 5,
+			"starttime": 1,
+			"stoptime": 2,
+			"umask": "724",
+			"exitcodes": 0,
+			"autostart": true,
+			"autorestart": true
+		}
+	]
+}

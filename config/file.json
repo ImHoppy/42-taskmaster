@@ -1,0 +1,18 @@
+{
+	"serverfile": "./taskmasterd.sock",
+	"logfile": "./taskmasterd.log",
+	"programs": [
+		{
+			"name": "mkdir",
+			"cmd": "mkdir",
+			"numprocs": 1,
+			"starttime": 1,
+			"stopsignal": 2,
+			"exitcodes": 0,
+			"autostart": true,
+			"autorestart": false,
+			"umask": "077",
+			"workingdir": "/tmp"
+		}
+	]
+}
