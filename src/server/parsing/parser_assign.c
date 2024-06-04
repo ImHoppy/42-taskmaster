@@ -26,7 +26,7 @@ bool parse_envs(const cJSON *const envs_obj, process_t *processes)
 	processes->config.envs = calloc(envs_count + 1, sizeof(char *));
 	if (processes->config.envs == NULL)
 	{
-		log_error("malloc failed");
+		log_fatal("malloc failed");
 		return false;
 	}
 

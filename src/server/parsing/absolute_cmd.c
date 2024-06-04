@@ -58,6 +58,7 @@ char *get_absolute_cmd_path(char *cmd)
 	if (paths == NULL)
 	{
 		free(cmd);
+		log_fatal("Cant split env PATH");
 		return NULL;
 	}
 
@@ -82,6 +83,6 @@ char *get_absolute_cmd_path(char *cmd)
 
 	free(cmd);
 	free_paths(paths);
-	log_error("Error: command not found in PATH");
+	log_error("command not found in PATH");
 	return NULL;
 }

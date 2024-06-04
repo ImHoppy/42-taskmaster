@@ -75,7 +75,10 @@ status_t parse_config(const cJSON *const json_config, process_t *processes)
 		else
 		{
 			if (access(processes[i].config.cmd[0], X_OK) == -1)
+			{
+				log_error("process \"%s\" cant execute command %s", processes[i].config.name, processes[i].config.cmd[0]);
 				return FAILURE;
+			}
 		}
 
 		if (!assign_non_zero_uint32(&processes[i].config.numprocs, numprocs))
