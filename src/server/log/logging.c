@@ -1,6 +1,7 @@
 
 
 #include "logging.h"
+#include <syslog.h>
 
 #define MAX_CALLBACKS 32
 
@@ -61,6 +62,20 @@ static void file_callback(log_Event *ev)
 	fflush(ev->udata);
 }
 
+static void syslog_callback(log_Event *ev)
+{
+	static const int to_syslog[] = {
+		LOG_NOTICE,
+		LOG_DEBUG,
+		LOG_INFO,
+		LOG_WARNING,
+		LOG_ERR,
+		LOG_CRIT,
+	};
+	printf("%d %s\n", to_syslog[ev->level], ev->fmt);
+	vsyslog(to_syslog[ev->level], ev->fmt, ev->ap);
+}
+
 const char *log_level_string(int level)
 {
 	return level_strings[level];
@@ -92,6 +107,11 @@ int log_add_callback(log_LogFn fn, void *udata, int level)
 int log_add_fp(FILE *fp, int level)
 {
 	return log_add_callback(file_callback, fp, level);
+}
+
+int log_add_syslog(int level)
+{
+	return log_add_callback(syslog_callback, NULL, level);
 }
 
 static void init_event(log_Event *ev, void *udata)
