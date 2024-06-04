@@ -9,7 +9,6 @@
 #include "headers/libunixsocket.h"
 #include <sys/epoll.h>
 #include "socket_server.h"
-#include <syslog.h>
 
 taskmaster_t g_taskmaster = {0};
 
@@ -83,8 +82,6 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	openlog(NULL, LOG_CONS | LOG_PERROR | LOG_NOWAIT | LOG_PID, LOG_LOCAL7);
-	log_add_syslog(LOG_INFO);
 	if (load_log_file(g_taskmaster.logfile) == 1)
 		return 1;
 
@@ -116,6 +113,5 @@ int main(int ac, char **av)
 	close(server_socket.epoll_fd);
 	close(server_socket.sfd);
 	fclose(g_taskmaster.log_fp);
-	closelog();
 	return 0;
 }
