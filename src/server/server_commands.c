@@ -73,12 +73,12 @@ status_t com_start(client_data_t *client, char *program_name)
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	if (start_child(current_process, process_child) == FAILURE)
 	{
 		dprintf(client->fd, "Program %s is already running\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	dprintf(client->fd, "Starting %s\n", program_name);
 	return SUCCESS;
@@ -116,12 +116,12 @@ status_t com_restart(client_data_t *client, char *program_name)
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	if (process_child->state != RUNNING && process_child->state != STOPPED)
 	{
 		dprintf(client->fd, "Program %s is not running\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 
 	process_child->need_restart = true;
@@ -150,12 +150,12 @@ status_t com_stop(client_data_t *client, char *program_name)
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	if (process_child->state != RUNNING)
 	{
 		dprintf(client->fd, "Program %s is not running\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	dprintf(client->fd, "Stopping %s\n", program_name);
 	murder_child(process_child, current_process->config.stopsignal);
@@ -181,7 +181,7 @@ status_t com_status(client_data_t *client, char *program_name)
 	if (process_child == NULL)
 	{
 		dprintf(client->fd, "Program %s not found\n", program_name);
-		return FAILURE;
+		return SUCCESS;
 	}
 	dprintf(client->fd, "%s %s\n", process_child->name, state_to_string(process_child->state));
 	return SUCCESS;
